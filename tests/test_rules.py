@@ -113,7 +113,7 @@ def test_stress_tests_cover_scenarios():
 
 def test_counterfactual_smaller_amount_for_robert_tsla():
     cfs = counterfactuals(P["robert"], P["robert"]["holdings"], act("TSLA", 60000, "retirement", "XBB.TO", "retirement"))
-    small = [c for c in cfs if c["variant"].startswith("Smaller")]
+    small = [c for c in cfs if c["kind"] == "amount"]
     assert small and small[0]["ceiling"] != "INCONSISTENT"
 
 
@@ -144,3 +144,17 @@ def test_supplemental_assets_loaded():
 def test_esg_labelled_fund_is_not_fossil_free():
     assert UNIVERSE["XESG.TO"]["sectors"].get("Energy", 0) > 0.1   # ESG-aware tilt, not an exclusion
     assert UNIVERSE["PLTR"]["esg_screen"] == "not held"
+
+
+def test_counterfactuals_report_what_changes():
+    cfs = counterfactuals(P["maya"], P["maya"]["holdings"], act("QQQ", 15000, "condo", "ZST.TO", "condo"))
+    goal = [c for c in cfs if c["kind"] == "goal"][0]
+    assert goal["changes_result"] and goal["direction"] == "better" and goal["fixes"] and not goal["still"]
+    same = counterfactuals(P["amira"], P["amira"]["holdings"], act("XEF.TO", 10000, "growth"))
+    assert not any(c["changes_result"] for c in same)  # nothing to show for an already-consistent idea
+
+
+def test_diversified_fund_variant_for_single_stock():
+    cfs = counterfactuals(P["amira"], P["amira"]["holdings"], act("NVDA", 15000, "growth"))
+    fund = [c for c in cfs if c["kind"] == "fund"][0]
+    assert fund["action"]["ticker"] == "QQQ" and fund["ceiling"] == "CONSISTENT"

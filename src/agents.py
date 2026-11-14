@@ -128,6 +128,8 @@ def judge(persona, action, bundle):
             "Explain clearly, separate facts (from market data), assumptions (our rules and approximations) and fictional "
             "elements (the persona). State the conditions under which your conclusion would no longer hold. "
             "Describe counterfactual variants as information, not as a recommendation to act. "
+            "Write for people: never use code names such as max_single_position_pct or min_liquid_cad; say "
+            "'the 10% single-stock limit' instead. In no_longer_valid_if, list only conditions RELEVANT to this verdict. "
             "VERDICT DEFINITIONS: CONSISTENT = no hard constraint or goal limit is breached before or after; "
             "CONSISTENT_WITH_CONDITIONS = the action creates no new breach but a pre-existing gap remains or a specific "
             "condition must hold; INCONSISTENT = the action creates or worsens a breach of a hard constraint or goal limit; "
@@ -145,7 +147,7 @@ def judge(persona, action, bundle):
               'this verdict, e.g. a longer horizon for the goal, a different funding source; never conditions that would only '
               'reinforce it), '
               '"variants": [{"variant": str (copy from counterfactuals), "rule_result": str (copy its computed ceiling), '
-              '"comment": str}] (ONLY the computed counterfactuals, in the same order; empty list if none), '
+              '"comment": str}] (ONLY computed counterfactuals whose changes_result is true, in the same order; empty list if none), '
               '"facts": [str], "assumptions": [str], "fictional": [str], '
               '"limits": [str] (limitations of THIS ANALYSIS: data coverage, method, model uncertainty; not the investor\'s constraints)}')
     return _call(role, bundle, schema, temperature=0.1, max_tokens=3000)

@@ -387,16 +387,27 @@ function openTab(it, tab) {
 const pill = (verdict) => { const i = vinfo(verdict); return `<span class="status s-${i.cls}">${i.short}</span>`; };
 const stepOut = (t, a) => (t.steps.find((s) => s.agent === a) || {}).output || {};
 
+const clean = (x) => x.replace(/^(Hard constraint breached|Soft check \(preference\) worsened|Pre-existing breach not created by this action): /, "");
+function variantCard(c) {
+  const li = (xs) => xs.map((x) => `<li>${esc(clean(x))}</li>`).join("");
+  return `<div class="vcard v-${vinfo(c.ceiling).cls}">
+    <div class="vflip">${pill(c.base_ceiling)}<svg width="18" height="12" viewBox="0 0 18 12"><path d="M1 6h14M11 1.5L15.5 6 11 10.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>${pill(c.ceiling)}</div>
+    <div class="vt">${esc(c.variant)}</div>
+    ${c.fixes.length ? `<div class="vlab ok">Fixes</div><ul class="vw">${li(c.fixes)}</ul>` : ""}
+    ${c.still.length ? `<div class="vlab cond">Still applies</div><ul class="vw">${li(c.still)}</ul>` : ""}
+    ${c.new_issues.length ? `<div class="vlab bad">New issue</div><ul class="vw">${li(c.new_issues)}</ul>` : ""}</div>`;
+}
 function tabOverview(t) {
   const r = t.result, bad = r.verdict === "INCONSISTENT";
-  const cfs = t.toolbox.counterfactuals || [];
+  const changed = (t.toolbox.counterfactuals || []).filter((c) => c.changes_result ?? c.ceiling !== t.toolbox.rules.ceiling);
+  const better = changed.filter((c) => (c.direction || "better") === "better");
   return `<div class="cols">
       <div class="box"><h4>Why</h4><ul class="list ${bad ? "red" : "blue"}">${(r.key_reasons || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
       <div class="box"><h4>This would change if</h4><ul class="list amber">${(r.no_longer_valid_if || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
     </div>
-    ${cfs.length ? `<div class="sec-title">Other versions of the same idea <span class="muted small" style="font-weight:400">· computed with the same rules · information, not advice</span></div>
-    <div class="variants">${cfs.map((c) => `<div class="vcard v-${vinfo(c.ceiling).cls}">${pill(c.ceiling)}<div class="vt">${esc(c.variant)}</div>
-      ${(c.reasons || []).length ? `<ul class="vw" style="margin:0;padding-left:16px">${c.reasons.map((x) => `<li>${esc(x.replace(/^(Hard constraint breached|Soft check \(preference\) worsened|Pre-existing breach not created by this action): /, ""))}</li>`).join("")}</ul>` : '<div class="vw">No rule is triggered.</div>'}</div>`).join("")}</div>` : ""}
+    ${changed.length ? `<div class="sec-title">${better.length ? "Versions of this idea that would change the answer" : "Versions that would make it worse"}
+      <span class="muted small" style="font-weight:400">· recomputed with the same rules · information, not advice</span></div>
+    <div class="variants">${changed.map((c) => (c.fixes ? variantCard(c) : `<div class="vcard v-${vinfo(c.ceiling).cls}">${pill(c.ceiling)}<div class="vt">${esc(c.variant)}</div></div>`)).join("")}</div>` : ""}
     ${r.debate_takeaway ? `<div class="alert alert-info" style="margin-top:14px"><b>Judge's takeaway:</b> ${esc(r.debate_takeaway)}</div>` : ""}`;
 }
 
