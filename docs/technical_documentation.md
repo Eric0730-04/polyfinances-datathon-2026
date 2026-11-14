@@ -287,7 +287,7 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
    - ESGV has no Energy, SPY does;
    - ceiling enforcement.
 2. **End-to-end evaluation** (`scripts/evaluate.py`, results in [`evaluation.md`](evaluation.md)):
-   - 15 cases × 2 repeats with live Bedrock calls;
+   - 18 cases × 2 repeats with live Bedrock calls;
    - measures exact verdict accuracy, safety (never more permissive than expected), intake accuracy, stability across repeats, numeric grounding, guardrail interventions and latency;
    - includes a prompt-injection case, an out-of-universe security and an ambiguous request.
 3. **Iterations driven by evaluation**, recorded honestly:
@@ -295,15 +295,15 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
    - We then added verdict definitions, symmetric breach rules, "use the ceiling unless you name a specific extra issue", a narrower guardrail topic, and audit of blocked originals.
    - The second run reached 23/24 exact and 24/24 safe.
    - The pipeline was then re-based on the official starter data and personas.
-4. **Current results** (15 cases × 2 repeats, live Bedrock):
+4. **Current results** (18 cases × 2 repeats, live Bedrock):
 
    | Metric | Result |
    |---|---|
-   | Exact verdict | 30/30 |
-   | Never more permissive than expected | 30/30 |
-   | Intake picked the right security | 30/30 |
-   | Same verdict on both repeats | 15/15 cases |
-   | Figures traced to data | 683/685 |
+   | Exact verdict | 36/36 |
+   | Never more permissive than expected | 36/36 |
+   | Intake picked the right security | 36/36 |
+   | Same verdict on both repeats | 18/18 cases |
+   | Figures traced to data | 845/847 |
    | Judge corrected by the ceiling | 0 |
    | Guardrail blocks after calibration | 0 (detections logged) |
 

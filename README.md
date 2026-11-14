@@ -71,7 +71,7 @@ export AWS_PROFILE=team10 AWS_DEFAULT_REGION=us-east-1
 Other entry points:
 
 ```bash
-.venv/bin/python -m pytest -q                                   # 32 deterministic tests (no AWS needed)
+.venv/bin/python -m pytest -q                                   # 43 deterministic tests (no AWS needed)
 .venv/bin/python scripts/run_case.py robert "Move \$60,000 from XBB into TSLA"   # one analysis from the CLI
 .venv/bin/python scripts/evaluate.py --repeats 2                # end-to-end evaluation → docs/evaluation.md
 .venv/bin/python scripts/fetch_supplemental.py                  # refresh supplemental public data (see Data)

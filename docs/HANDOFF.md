@@ -67,8 +67,8 @@ It never recommends what to buy.
 | Official personas + Maya (optional near-term-purchase scenario) | ✅ `personas/` |
 | Starter data + supplemental data (ETF sectors, SEC N-PORT ESG screen, fundamentals) | ✅ |
 | AWS: Bedrock (Nova 2 Lite), Guardrails, S3 | ✅ |
-| Tests | ✅ 37 deterministic tests |
-| Evaluation | ✅ 30/30 correct, 15/15 stable, 683/685 numbers grounded, see `docs/evaluation.md` |
+| Tests | ✅ 43 deterministic tests |
+| Evaluation | ✅ 36/36 correct, 18/18 stable, 845/847 numbers grounded, see `docs/evaluation.md` |
 | Technical documentation, one-pager, video script | ✅ in `docs/` |
 | **Video recording** | ⏳ to do, script in `docs/video_script.md` |
 | **Team review of assumptions** (§5) | ⏳ to do |
