@@ -37,7 +37,7 @@ Risk units are measured volatility relative to the S&P 500. Stress tests include
 ### Explainability and trust
 - Every run produces an audit trace stored in **Amazon S3**, with each agent's output, latency, tokens and the data provenance.
 - An **Amazon Bedrock Guardrail** blocks guaranteed-return claims and PII, and logs trade-instruction language.
-- **Evaluation:** 28 live end-to-end runs. The verdict matched the expected one in 28/28 and was never more permissive than expected. Repeats agreed in 14/14 cases, and 597/598 figures traced to data. The runs included a prompt-injection attempt.
+- **Evaluation:** 30 live end-to-end runs. The verdict matched the expected one in 30/30 and was never more permissive than expected. Repeats agreed in 15/15 cases, and 683/685 figures traced to data. The runs included a prompt-injection attempt.
 
 ### User benefit
 A 15-second second opinion that respects the investor's autonomy. It is clear enough for a novice and precise enough for an expert, and every claim is verifiable.
