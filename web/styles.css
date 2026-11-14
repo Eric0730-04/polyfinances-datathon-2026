@@ -429,3 +429,11 @@ ol.plain li::marker { color: var(--muted); font-size: 12px; }
 .ai-avatar .mono { width: 34px; height: 34px; border-radius: 9px; font-size: 12.5px; }
 .robust { margin: 18px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); font-size: 13.5px; color: var(--ink-2); }
 .robust b { color: var(--ink); }
+details.more { margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+details.more summary { cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--ink-2); list-style: none; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more summary::before { content: "+"; display: inline-block; width: 16px; color: var(--muted); }
+details.more[open] summary::before { content: "–"; }
+.msg-ai.flash .answer { animation: flash 1.4s ease-out; }
+@keyframes flash { 0% { box-shadow: 0 0 0 3px rgba(37, 99, 235, .45); } 100% { box-shadow: var(--shadow); } }
+.node .nd { flex: none; align-self: center; }

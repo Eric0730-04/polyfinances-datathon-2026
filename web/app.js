@@ -288,13 +288,36 @@ function addDone(pid, request, trace, tab = null) {
   if (state.pid === pid) renderThread(item.id);
 }
 
+// Open a finished analysis (from Compare or History): switch view, reuse the thread item if it exists, then jump to it
+// after the page has rendered (an instant jump, so chart drawing can't cancel a smooth scroll).
+function openAnalysis(pid, request, trace) {
+  showView("check");
+  if (state.pid !== pid) selectPersona(pid);
+  let item = thread(pid).find((x) => x.trace?.run_id === trace.run_id);
+  if (!item) {
+    item = { id: `m${++state.seq}`, pid, request, status: "done", trace };
+    thread(pid).push(item);
+    addHistory(item);
+  }
+  renderThread();
+  jumpTo(item.id);
+}
+function jumpTo(id) {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 16, behavior: "auto" });
+    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  }));
+}
+
 function addHistory(item) {
   state.history.unshift(item);
   $("#history").innerHTML = state.history.slice(0, 12).map((h) => { const v = vinfo(h.trace.result.verdict);
     return `<div class="h-item" data-h="${h.id}"><span class="dot" style="background:var(--${v.cls})"></span><span class="txt"><b>${esc(persona(h.pid).name)}</b> · ${esc(h.request)}</span></div>`; }).join("");
   $$(".h-item").forEach((el) => el.addEventListener("click", () => {
     const h = state.history.find((x) => x.id === el.dataset.h);
-    showView("check"); selectPersona(h.pid); document.getElementById(h.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    showView("check"); if (state.pid !== h.pid) selectPersona(h.pid); renderThread(); jumpTo(h.id);
   }));
 }
 
@@ -427,15 +450,15 @@ function tabOverview(t) {
   const changed = (t.toolbox.counterfactuals || []).filter((c) => c.changes_result ?? c.ceiling !== t.toolbox.rules.ceiling);
   const better = changed.filter((c) => (c.direction || "better") === "better");
   const ol = (xs) => `<ol class="plain">${(xs || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ol>`;
-  return `<div class="ov">
-      <div><h4 class="h">Why</h4>${ol(r.key_reasons)}</div>
-      <div><h4 class="h">What would change this answer</h4>${ol(r.no_longer_valid_if)}</div>
-    </div>
+  return `<div><h4 class="h">Why</h4>${ol(r.key_reasons)}</div>
     ${changed.length ? `<h4 class="h" style="margin-top:22px">${better.length ? "Versions of this idea that would change the verdict" : "Versions that would make it worse"}
       <span class="muted small" style="font-weight:400"> · recomputed with the same rules · information, not advice</span></h4>
     <div class="table-wrap"><table class="data vtable"><thead><tr><th style="width:34%">Version</th><th>Verdict</th><th>What changes</th></tr></thead>
       <tbody>${changed.map(variantRow).join("")}</tbody></table></div>` : ""}
     ${robustNote(t, changed)}
+    ${(r.no_longer_valid_if || []).length ? `<details class="more"><summary>When would this answer be different?</summary>
+      <p class="small muted" style="margin:6px 0 4px">Conditions about the investor or the market under which the conclusion would no longer hold. They describe the analysis, they are not suggestions.</p>
+      ${ol(r.no_longer_valid_if)}</details>` : ""}
     ${r.debate_takeaway ? `<p class="takeaway"><b>Judge's takeaway.</b> ${esc(r.debate_takeaway)}</p>` : ""}`;
 }
 
@@ -739,7 +762,7 @@ async function compare() {
         ${g ? `<div class="small muted">Goal risk ${pct(g.risky_share)} vs limit ${pct(g.allowed_max_risky)}</div>` : ""}
         <ul>${(r.key_reasons || []).slice(0, 3).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
         <button class="link" data-open="${p.id}">Open full analysis →</button>`;
-      el.querySelector("[data-open]").addEventListener("click", () => { showView("check"); selectPersona(p.id); addDone(p.id, req, t); });
+      el.querySelector("[data-open]").addEventListener("click", () => openAnalysis(p.id, req, t));
     });
   } catch (e) { $("#compareGrid").innerHTML = errorCard(e.f || { title: "Comparison failed", technical: String(e) }); }
   finally { $("#compareBtn").disabled = false; }

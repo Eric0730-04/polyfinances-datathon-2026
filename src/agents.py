@@ -128,7 +128,7 @@ def judge(persona, action, bundle):
             "Explain clearly, separate facts (from market data), assumptions (our rules and approximations) and fictional "
             "elements (the persona). State the conditions under which your conclusion would no longer hold. "
             "Describe counterfactual variants as information, not as a recommendation to act. "
-            "Write for people: never use code names such as max_single_position_pct or min_liquid_cad; say "
+            "Write for people: express shares and risk levels as percentages (133%, not 1.33); never use code names such as max_single_position_pct or min_liquid_cad; say "
             "'the 10% single-stock limit' instead. In no_longer_valid_if, list only conditions RELEVANT to this verdict. "
             "VERDICT DEFINITIONS: CONSISTENT = no hard constraint or goal limit is breached before or after; "
             "CONSISTENT_WITH_CONDITIONS = the action creates no new breach but a pre-existing gap remains or a specific "
