@@ -36,6 +36,11 @@ def act(t, amt, goal, funding="new_money", fgoal=None, a="buy"):
     # Maya: tolerance is not capacity
     ("maya", act("QQQ", 15000, "condo", "ZST.TO", "condo"), "INCONSISTENT"),
     ("maya", act("SPY", 3000, "retirement"), "CONSISTENT"),
+    # supplemental assets
+    ("amira", act("XEF.TO", 10000, "growth"), "CONSISTENT"),                   # international diversification
+    ("amira", act("SOL-USD", 5000, "growth"), "INCONSISTENT"),                 # crypto cap + risk budget
+    ("robert", act("PLTR", 20000, "retirement", "XBB.TO", "retirement"), "INCONSISTENT"),
+    ("mateo", act("XESG.TO", 10000, "balanced"), "CONSISTENT_WITH_CONDITIONS"),  # "ESG" fund still ~23% Energy
 ])
 def test_rule_ceiling(pid, action, expected):
     assert evaluate(P[pid], P[pid]["holdings"], action)["ceiling"] == expected
@@ -125,3 +130,17 @@ def test_enforce_ceiling(judge, ceiling, expected, adjusted):
 def test_esg_screen_evidence_loaded():
     assert UNIVERSE["XOM"]["esg_screen"] == "not held" and UNIVERSE["AAPL"]["esg_screen"] == "held"
     assert UNIVERSE["RY.TO"]["esg_screen"].startswith("not covered")
+
+
+def test_supplemental_assets_loaded():
+    px, _, _ = load_market()
+    extra = ["XEF.TO", "XEC.TO", "XEQT.TO", "VDY.TO", "XESG.TO", "ICLN", "CASH.TO", "PLTR", "META", "AMD", "LLY",
+             "BRK-B", "KO", "COST", "BNS.TO", "BCE.TO", "L.TO", "ABX.TO", "SOL-USD"]
+    assert all(t in UNIVERSE and UNIVERSE[t]["data_source"] == "supplemental" for t in extra)
+    assert all(px[t].first_valid_index().strftime("%Y-%m-%d") == "2021-11-12" for t in extra)
+    assert len(UNIVERSE) == 51  # 31 starter + 19 supplemental + synthetic CASH
+
+
+def test_esg_labelled_fund_is_not_fossil_free():
+    assert UNIVERSE["XESG.TO"]["sectors"].get("Energy", 0) > 0.1   # ESG-aware tilt, not an exclusion
+    assert UNIVERSE["PLTR"]["esg_screen"] == "not held"

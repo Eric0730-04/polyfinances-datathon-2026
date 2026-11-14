@@ -10,37 +10,91 @@
   "risk_tolerance": "high",
   "risk_tolerance_note": "Official profile: high risk. Does not want to invest exclusively in technology.",
   "goals": [
-    {"id": "emergency", "label": "Emergency fund", "type": "emergency_fund", "target_cad": 8000, "horizon_years": 0, "priority": 1},
-    {"id": "growth", "label": "Long-term growth", "type": "growth", "target_cad": null, "horizon_years": 15,
-     "horizon_note": "stated horizon 15 years or more", "priority": 2}
+    {
+      "id": "emergency",
+      "label": "Emergency fund",
+      "type": "emergency_fund",
+      "target_cad": 8000,
+      "horizon_years": 0,
+      "priority": 1
+    },
+    {
+      "id": "growth",
+      "label": "Long-term growth",
+      "type": "growth",
+      "target_cad": null,
+      "horizon_years": 15,
+      "horizon_note": "stated horizon 15 years or more",
+      "priority": 2
+    }
   ],
   "holdings": [
-    {"ticker": "CASH", "value_cad": 8000, "goal": "emergency"},
-    {"ticker": "SPY", "value_cad": 15000, "goal": "growth"},
-    {"ticker": "QQQ", "value_cad": 8000, "goal": "growth"},
-    {"ticker": "XIU.TO", "value_cad": 6000, "goal": "growth"},
-    {"ticker": "AGG", "value_cad": 3000, "goal": "growth"},
-    {"ticker": "NVDA", "value_cad": 2500, "goal": "growth"},
-    {"ticker": "BTC-USD", "value_cad": 2000, "goal": "growth"},
-    {"ticker": "AMZN", "value_cad": 1500, "goal": "growth"}
+    {
+      "ticker": "CASH",
+      "value_cad": 8000,
+      "goal": "emergency"
+    },
+    {
+      "ticker": "SPY",
+      "value_cad": 15000,
+      "goal": "growth"
+    },
+    {
+      "ticker": "QQQ",
+      "value_cad": 8000,
+      "goal": "growth"
+    },
+    {
+      "ticker": "XIU.TO",
+      "value_cad": 6000,
+      "goal": "growth"
+    },
+    {
+      "ticker": "AGG",
+      "value_cad": 3000,
+      "goal": "growth"
+    },
+    {
+      "ticker": "NVDA",
+      "value_cad": 2500,
+      "goal": "growth"
+    },
+    {
+      "ticker": "BTC-USD",
+      "value_cad": 2000,
+      "goal": "growth"
+    },
+    {
+      "ticker": "AMZN",
+      "value_cad": 1500,
+      "goal": "growth"
+    }
   ],
   "constraints": {
     "min_liquid_cad": 8000,
     "max_single_position_pct": 15,
     "max_crypto_pct": 10,
     "max_sector_pct": 50,
-    "_origin": {"max_sector_pct": "derived from 'does not want to invest exclusively in technology' (assumption, to confirm)",
-                "max_crypto_pct": "derived from 'still wants some diversification' (assumption, to confirm)",
-                "max_single_position_pct": "derived (assumption, to confirm)"}
+    "_origin": {
+      "max_sector_pct": "derived from 'does not want to invest exclusively in technology' (assumption, to confirm)",
+      "max_crypto_pct": "derived from 'still wants some diversification' (assumption, to confirm)",
+      "max_single_position_pct": "derived (assumption, to confirm)"
+    }
   },
   "preferences": {
-    "likes": ["artificial intelligence", "emerging technologies", "high-growth companies", "crypto assets"],
+    "likes": [
+      "artificial intelligence",
+      "emerging technologies",
+      "high-growth companies",
+      "crypto assets"
+    ],
     "esg_important": false,
     "income_needed": false
   },
   "sample_requests": [
     "AI is the future. Put $15,000 of new money into NVIDIA.",
     "Add $2,000 of new money to Ether.",
-    "Add $10,000 of new money to XIU to diversify outside US tech."
+    "Add $10,000 of new money to XEF.TO to diversify outside North America.",
+    "Put $5,000 of new money into Solana."
   ]
 }

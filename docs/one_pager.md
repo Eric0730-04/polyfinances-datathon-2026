@@ -30,7 +30,7 @@ The investor states their idea in plain language. SecondLook answers one questio
 - **Tolerance ≠ capacity.** A high-tolerance saver still can't put condo money due in 2.5 years into QQQ.
 
 ### Data
-Official starter pack: 31 assets, adjusted prices 2021–2026, Bank of Canada exchange rates and rates, FRED, all in CAD. One documented supplement: ETF sector weights.
+Official starter pack (31 assets, adjusted prices 2021–2026, Bank of Canada exchange rates and rates, FRED), plus 19 documented supplemental assets from the same source and window (international and emerging-market funds, Canadian ESG, established income names, the AI names investors ask about). Also ETF sector weights, company fundamentals, and an ESG screen from SEC filings. All in CAD.
 
 Risk units are measured volatility relative to the S&P 500. Stress tests include historical replays such as 2022, when stocks and bonds fell together, and CPI is used only once it was published. Survivorship bias, the CNQ split anomaly and ESG gaps are disclosed.
 

@@ -1,6 +1,6 @@
 {
   "source": "Yahoo Finance via yfinance funds_data.sector_weightings",
-  "fetched_at_utc": "2026-11-14T18:22:21+00:00",
+  "fetched_at_utc": "2026-11-14T19:03:43+00:00",
   "mapping": "Yahoo sector names mapped to GICS sector names used in assets_universe.csv",
   "etfs": {
     "XIU.TO": {
@@ -51,6 +51,76 @@
       "Real Estate": 0.0246,
       "Materials": 0.0163,
       "Utilities": 0.0013
+    },
+    "XEF.TO": {
+      "Financials": 0.2336,
+      "Industrials": 0.1892,
+      "Information Technology": 0.1093,
+      "Health Care": 0.1065,
+      "Consumer Discretionary": 0.08,
+      "Consumer Staples": 0.0673,
+      "Materials": 0.0626,
+      "Communication Services": 0.0464,
+      "Energy": 0.0429,
+      "Utilities": 0.0356,
+      "Real Estate": 0.0266
+    },
+    "XEC.TO": {
+      "Information Technology": 0.3988,
+      "Financials": 0.1962,
+      "Consumer Discretionary": 0.081,
+      "Industrials": 0.0724,
+      "Materials": 0.0575,
+      "Communication Services": 0.0567,
+      "Energy": 0.0364,
+      "Health Care": 0.0359,
+      "Consumer Staples": 0.0295,
+      "Utilities": 0.0197,
+      "Real Estate": 0.0158
+    },
+    "XEQT.TO": {
+      "Information Technology": 0.2393,
+      "Financials": 0.2099,
+      "Industrials": 0.1147,
+      "Energy": 0.0746,
+      "Health Care": 0.0744,
+      "Consumer Discretionary": 0.0732,
+      "Materials": 0.0676,
+      "Communication Services": 0.055,
+      "Consumer Staples": 0.0452,
+      "Utilities": 0.0261,
+      "Real Estate": 0.0202
+    },
+    "VDY.TO": {
+      "Financials": 0.6,
+      "Energy": 0.2834,
+      "Utilities": 0.0352,
+      "Consumer Discretionary": 0.0273,
+      "Communication Services": 0.0229,
+      "Materials": 0.0205,
+      "Information Technology": 0.0038,
+      "Consumer Staples": 0.0032,
+      "Industrials": 0.0028,
+      "Health Care": 0.0009
+    },
+    "XESG.TO": {
+      "Financials": 0.3714,
+      "Energy": 0.2319,
+      "Materials": 0.1898,
+      "Industrials": 0.0931,
+      "Information Technology": 0.0337,
+      "Consumer Discretionary": 0.0332,
+      "Utilities": 0.0263,
+      "Consumer Staples": 0.0104,
+      "Real Estate": 0.007,
+      "Communication Services": 0.0025,
+      "Health Care": 0.0008
+    },
+    "ICLN": {
+      "Utilities": 0.495,
+      "Information Technology": 0.2869,
+      "Industrials": 0.2019,
+      "Materials": 0.0162
     }
   }
 }

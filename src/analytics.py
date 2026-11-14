@@ -30,6 +30,9 @@ def load_market():
     - CASH accrues the Bank of Canada overnight target (V39079) daily (assumption for a HISA)
     """
     p = pd.read_csv(STARTER / "prices_daily.csv", parse_dates=["date"])
+    extra = STARTER.parent / "supplemental" / "prices_extra.csv"
+    if extra.exists():  # supplemental assets: same source, window and format as the starter pack
+        p = pd.concat([p, pd.read_csv(extra, parse_dates=["date"])], ignore_index=True)
     px = p.pivot(index="date", columns="ticker", values="adj_close").sort_index()
     cal = pd.date_range(px.index.min(), px.index.max(), freq="D")
     px = px.reindex(cal)
@@ -57,7 +60,7 @@ def load_macro():
 def provenance():
     _, _, meta = load_market()
     return {
-        "prices": "AlphaForge starter pack: Yahoo Finance via yfinance, adj_close (splits + dividends), retrieved 2026-11-13",
+        "prices": "AlphaForge starter pack (31 assets) + 19 supplemental assets, same source and window: Yahoo Finance via yfinance, adj_close (splits + dividends)",
         "fx": "Bank of Canada Valet FXUSDCAD, carried forward over Canadian holidays",
         "macro": "Bank of Canada Valet and FRED (starter pack macro_rates.csv)",
         "etf_sectors": f"Yahoo fund sector breakdown, fetched {etf_sectors().get('fetched_at_utc', 'n/a')} (supplemental)",

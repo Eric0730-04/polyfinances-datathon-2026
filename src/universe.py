@@ -1,4 +1,5 @@
-"""Investable universe = the official AlphaForge starter universe (31 assets) + a synthetic CAD cash line.
+"""Investable universe = the official AlphaForge starter universe (31 assets) + 19 supplemental assets
+(data/supplemental/assets_extra.csv, same source and window) + a synthetic CAD cash line.
 
 Static look-through metadata below (geography, currency exposure, normalised asset class) is OUR
 approximation from issuer descriptions, labelled source="assumption" and shown as such in the UI.
@@ -17,7 +18,7 @@ CASH = "CASH"  # synthetic: CAD cash / high-interest savings, accrues the BoC ov
 
 # normalised asset classes; "diversified" = a fund holding many securities (single-position limits don't apply)
 CLASS_MAP = {"equity": "equity", "etf_equity": "equity", "etf_bond": "fixed_income",
-             "etf_commodity": "commodity", "crypto": "crypto"}
+             "etf_commodity": "commodity", "crypto": "crypto", "etf_cash": "cash_equivalent"}
 
 # Look-through for funds (assumption, from issuer descriptions; rounded)
 LOOKTHROUGH = {
@@ -34,9 +35,21 @@ LOOKTHROUGH = {
     "GLD": dict(geography={"GLOBAL": 1.0}, currency={"USD": 1.0}, diversified=False),
     "BTC-USD": dict(geography={"GLOBAL": 1.0}, currency={"USD": 1.0}),
     "ETH-USD": dict(geography={"GLOBAL": 1.0}, currency={"USD": 1.0}),
+    # ---- supplemental assets (data/supplemental/assets_extra.csv) ----
+    "XEF.TO": dict(geography={"INTL_DEV": 1.0}, currency={"OTHER": 1.0}, note="Developed markets ex North America (Europe, Japan, Australia...)"),
+    "XEC.TO": dict(geography={"EM": 1.0}, currency={"OTHER": 1.0}, note="Emerging markets (China, India, Taiwan...)"),
+    "XEQT.TO": dict(geography={"US": 0.45, "CA": 0.25, "INTL_DEV": 0.24, "EM": 0.06},
+                    currency={"USD": 0.45, "CAD": 0.25, "OTHER": 0.30}, note="All-equity global portfolio in one fund"),
+    "VDY.TO": dict(geography={"CA": 1.0}, currency={"CAD": 1.0}, note="Canadian high-dividend stocks (bank- and energy-heavy)"),
+    "XESG.TO": dict(geography={"CA": 1.0}, currency={"CAD": 1.0}, note="Canadian equities with ESG screening and tilts (issuer methodology)"),
+    "ICLN": dict(geography={"US": 0.45, "INTL_DEV": 0.40, "EM": 0.15}, currency={"USD": 0.45, "OTHER": 0.55},
+                 note="Thematic clean-energy fund: concentrated, volatile"),
+    "CASH.TO": dict(geography={"CA": 1.0}, currency={"CAD": 1.0}, note="High-interest savings ETF; treated as cash-equivalent"),
+    "SOL-USD": dict(geography={"GLOBAL": 1.0}, currency={"USD": 1.0}),
 }
 
-GEO_LABELS = {"CA": "Canada", "US": "United States", "GLOBAL": "Global / no country"}
+GEO_LABELS = {"CA": "Canada", "US": "United States", "INTL_DEV": "International developed", "EM": "Emerging markets",
+              "GLOBAL": "Global / no country"}
 
 # Fossil-fuel screen used for ESG preferences: GICS Energy sector (assumption: ENB, CNQ, XOM are fossil-fuel
 # businesses; this mirrors the fossil-fuel exclusion in ESGV's published methodology). Controversy status is NOT
@@ -59,6 +72,11 @@ def supplemental(name):
 @lru_cache(maxsize=1)
 def load_universe() -> dict:
     df = pd.read_csv(STARTER / "assets_universe.csv")
+    extra = SUPPLEMENTAL / "assets_extra.csv"
+    if extra.exists():
+        df = pd.concat([df.assign(source="starter"), pd.read_csv(extra).assign(source="supplemental")], ignore_index=True)
+    else:
+        df = df.assign(source="starter")
     uni = {}
     for r in df.itertuples():
         lt = LOOKTHROUGH.get(r.ticker, {})
@@ -70,7 +88,7 @@ def load_universe() -> dict:
             "geography": lt.get("geography", {"CA": 1.0} if r.market == "TSX" else {"US": 1.0}),
             "currency": lt.get("currency", {r.currency: 1.0}),
             "lookthrough_source": "assumption (issuer description)" if r.ticker in LOOKTHROUGH else "starter dataset",
-            "note": lt.get("note"),
+            "note": lt.get("note"), "data_source": r.source,
         }
         if ac == "equity":
             if is_fund:

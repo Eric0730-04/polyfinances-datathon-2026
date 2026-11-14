@@ -27,6 +27,8 @@ OUT = ROOT / "data" / "supplemental"
 OUT.mkdir(parents=True, exist_ok=True)
 NOW = datetime.now(timezone.utc).isoformat(timespec="seconds")
 universe = pd.read_csv(ROOT / "data" / "starter" / "assets_universe.csv")
+if (OUT / "assets_extra.csv").exists():  # include supplemental assets (scripts/fetch_extra_assets.py)
+    universe = pd.concat([universe, pd.read_csv(OUT / "assets_extra.csv")], ignore_index=True)
 
 # ---------------------------------------------------------------- 1. ETF sectors
 YAHOO_TO_GICS = {
@@ -37,7 +39,7 @@ YAHOO_TO_GICS = {
 }
 sectors = {"source": "Yahoo Finance via yfinance funds_data.sector_weightings", "fetched_at_utc": NOW,
            "mapping": "Yahoo sector names mapped to GICS sector names used in assets_universe.csv", "etfs": {}}
-for t in ["XIU.TO", "SPY", "QQQ", "ESGV"]:
+for t in ["XIU.TO", "SPY", "QQQ", "ESGV", "XEF.TO", "XEC.TO", "XEQT.TO", "VDY.TO", "XESG.TO", "ICLN"]:
     sw = yf.Ticker(t).funds_data.sector_weightings
     w = {YAHOO_TO_GICS.get(k, k): float(v) for k, v in sw.items() if v}
     s = sum(w.values())
@@ -71,7 +73,10 @@ raw = urllib.request.urlopen(urllib.request.Request(FILING["url"], headers=UA), 
 text = re.sub(r"\s+", " ", H.unescape(re.sub(r"<[^>]+>", " ", raw)))
 NAMES = {"AAPL": "Apple Inc.", "MSFT": "Microsoft Corp.", "NVDA": "NVIDIA Corp.", "GOOGL": "Alphabet Inc.",
          "AMZN": "Amazon.com Inc.", "TSLA": "Tesla Inc.", "JPM": "JPMorgan Chase & Co.", "JNJ": "Johnson & Johnson",
-         "PG": "Procter & Gamble Co.", "XOM": "Exxon Mobil Corp."}
+         "PG": "Procter & Gamble Co.", "XOM": "Exxon Mobil Corp.",
+         "META": "Meta Platforms Inc.", "AMD": "Advanced Micro Devices Inc.", "PLTR": "Palantir Technologies Inc.",
+         "LLY": "Eli Lilly & Co.", "COST": "Costco Wholesale Corp.", "BRK-B": "Berkshire Hathaway Inc.",
+         "KO": "Coca-Cola Co."}
 screen = {"source": "SEC EDGAR Form N-PORT, Vanguard World Fund: Vanguard ESG U.S. Stock ETF schedule of investments",
           **FILING, "fetched_at_utc": NOW,
           "method": "A company listed in the schedule passed the ESGV index screens; absence means excluded "

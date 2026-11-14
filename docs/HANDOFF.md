@@ -123,7 +123,7 @@ Judges may ask about these. They are documented in `docs/technical_documentation
 | `src/agents.py` | Agent prompts (Bedrock) |
 | `src/orchestrator.py` | Runs the pipeline, follow-up questions, trace, guardrail, S3 |
 | `src/errors.py` | Plain-language error messages |
-| `src/universe.py` | 31-asset universe + look-through assumptions |
+| `src/universe.py` | 50-asset universe (31 official + 19 supplemental) + look-through assumptions |
 | `server.py`, `web/` | API + UI |
 | `personas/*.json` | Investor profiles, sample requests |
 | `scripts/` | `check_aws`, `setup_aws`, `run_case` (CLI), `evaluate`, `fetch_supplemental` |
@@ -135,7 +135,7 @@ Judges may ask about these. They are documented in `docs/technical_documentation
 - **Restart the server after code changes.** `uvicorn` isn't started with `--reload`.
 - **Cost:** a full evaluation (`scripts/evaluate.py`) is about 30 runs × 24k tokens. Fine, but don't loop it.
 - **Data:**
-  - Only the 31 starter assets can be analysed; anything else gets a follow-up question.
+  - Only the 50 assets (31 official + 19 supplemental, `data/supplemental/assets_extra.csv`) can be analysed; anything else gets a follow-up question. Add more with `scripts/fetch_extra_assets.py`.
   - The ESG screen covers US stocks only.
 
 ## 8. Ideas if we have time

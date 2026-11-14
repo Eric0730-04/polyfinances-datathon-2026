@@ -611,7 +611,7 @@ function renderMethod() {
     <ul><li><b>Inconsistent</b>: the idea creates or worsens a breach of a hard limit or a goal's risk limit.</li>
       <li><b>Consistent with conditions</b>: no new breach, but a preference is worsened or a pre-existing gap remains.</li>
       <li><b>Consistent</b>: nothing is breached before or after.</li>
-      <li><b>Needs more information</b>: ambiguous or outside the 31-asset universe; SecondLook asks a follow-up question.</li></ul>
+      <li><b>Needs more information</b>: ambiguous or outside the ${Object.keys(m.universe).length - 1}-asset universe; SecondLook asks a follow-up question.</li></ul>
     <h3>4. Data sources</h3><div class="box"><dl class="kv">${Object.entries(m.provenance).map(([k, v]) => `<dt>${esc(title(k))}</dt><dd>${esc(v)}</dd>`).join("")}</dl></div>
     <h3>5. Macro context (only data published by ${esc(m.macro.asof)})</h3>
     <div class="table-wrap"><table class="data"><thead><tr><th>Series</th><th class="num">Value</th><th>Date</th></tr></thead><tbody>

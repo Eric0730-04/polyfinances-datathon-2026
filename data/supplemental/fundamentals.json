@@ -1,6 +1,6 @@
 {
   "source": "Yahoo Finance quote summary via yfinance Ticker.info",
-  "fetched_at_utc": "2026-11-14T18:22:21+00:00",
+  "fetched_at_utc": "2026-11-14T19:03:43+00:00",
   "note": "Snapshot at fetch date (not point-in-time over the price window). Market cap in listing currency.",
   "companies": {
     "RY.TO": {
@@ -242,6 +242,138 @@
       "currency": "USD",
       "business_summary": "ExxonMobil Holdings Corporation engages in the exploration and production of crude oil and natural gas in the United States, Canada, and internationally. The company operates through Upstream, Energy Products, Chemical Products, and Specialty Products segments. Its Upstream segment explores for and produces crude oil and natural gas. The Energy Products segment offers fuels, aromatics, and catalys",
       "listed_since": "1962"
+    },
+    "META": {
+      "market_cap": 1640314437632,
+      "profit_margin": 0.31145,
+      "return_on_equity": 0.32264,
+      "debt_to_equity_pct": 42.161,
+      "revenue_growth_yoy": 0.261,
+      "dividend_yield_pct": 0.33,
+      "employees": 66775,
+      "currency": "USD",
+      "business_summary": "Meta Platforms, Inc. engages in the development of products that enable people to connect and share with friends and family through mobile devices, personal computers, virtual reality (VR) headsets, and AI glasses in the United States, Canada, Europe, Asia-Pacific, and internationally. It operates through two segments, Family of Apps (FoA) and Reality Labs (RL). The FoA segment offers Facebook, wh",
+      "listed_since": "2012"
+    },
+    "AMD": {
+      "market_cap": 875905024000,
+      "profit_margin": 0.16769,
+      "return_on_equity": 0.1196,
+      "debt_to_equity_pct": 13.469,
+      "revenue_growth_yoy": 0.447,
+      "dividend_yield_pct": 0.0,
+      "employees": 31000,
+      "currency": "USD",
+      "business_summary": "Advanced Micro Devices, Inc. operates as a semiconductor company internationally. It operates in three segments: Data Center, Client and Gaming, and Embedded. The company offers artificial intelligence (AI) accelerators, microprocessors, and graphics processing units (GPUs) as standalone devices or as incorporated into accelerated processing units, chipsets, and data center and professional GPUs; ",
+      "listed_since": "1980"
+    },
+    "PLTR": {
+      "market_cap": 404771504128,
+      "profit_margin": 0.50343,
+      "return_on_equity": 0.40907001,
+      "debt_to_equity_pct": 1.986,
+      "revenue_growth_yoy": 0.959,
+      "dividend_yield_pct": 0.0,
+      "employees": 4634,
+      "currency": "USD",
+      "business_summary": "Palantir Technologies Inc. builds and deploys software platforms for the intelligence community to assist in counterterrorism investigations and operations in the United States, the United Kingdom, and internationally. It provides Palantir Gotham integrates with other platforms for defense offerings which enables users to see, understand, and act in the modern battlespace; operations centers to th",
+      "listed_since": "2020"
+    },
+    "LLY": {
+      "market_cap": 1285790498816,
+      "profit_margin": 0.31898,
+      "return_on_equity": 0.86024004,
+      "debt_to_equity_pct": 122.925,
+      "revenue_growth_yoy": 0.386,
+      "dividend_yield_pct": 0.48,
+      "employees": 50000,
+      "currency": "USD",
+      "business_summary": "Eli Lilly and Company discovers, develops, manufactures, and markets human pharmaceutical products in the United States, Europe, China, Japan, and internationally. The company offers cardiometabolic health products, including Basaglar, Humalog, Humalog Mix 75/25, Humalog U-100, Humalog U-200, Humalog Mix 50/50, insulin lispro, insulin lispro protamine, insulin lispro mix 75/25, Humulin, Humulin 70",
+      "listed_since": "1972"
+    },
+    "COST": {
+      "market_cap": 490194108416,
+      "profit_margin": 0.03043,
+      "return_on_equity": 0.28402,
+      "debt_to_equity_pct": 28.436,
+      "revenue_growth_yoy": 0.111,
+      "dividend_yield_pct": 0.53,
+      "employees": 355000,
+      "currency": "USD",
+      "business_summary": "Costco Wholesale Corporation, together with its subsidiaries, engages in the operation of membership warehouses in the United States, Puerto Rico, Canada, Mexico, Japan, the United Kingdom, Korea, Australia, Taiwan, China, Spain, France, Sweden, Iceland, and New Zealand. It offers merchandise, including sundries, dry groceries, candies, coolers, freezers, liquor, and tobacco; non-food merchandise ",
+      "listed_since": "1986"
+    },
+    "BRK-B": {
+      "market_cap": 1259712413696,
+      "profit_margin": 0.19497,
+      "return_on_equity": 0.10574,
+      "debt_to_equity_pct": 17.127,
+      "revenue_growth_yoy": 0.112,
+      "dividend_yield_pct": 0.0,
+      "employees": 387800,
+      "currency": "USD",
+      "business_summary": "Berkshire Hathaway Inc., together with its subsidiaries, engages in the insurance, freight rail transportation, and utility businesses. The company provides property, casualty, life, accident, and health insurance and reinsurance; operates railroad systems in North America; generates, transmits, stores, and distributes electricity from natural gas, coal, wind, solar, hydroelectric, nuclear, and ge",
+      "listed_since": "1996"
+    },
+    "KO": {
+      "market_cap": 426963795968,
+      "profit_margin": 0.28654,
+      "return_on_equity": 0.40592998,
+      "debt_to_equity_pct": 107.449,
+      "revenue_growth_yoy": 0.074,
+      "dividend_yield_pct": 2.14,
+      "employees": 65900,
+      "currency": "USD",
+      "business_summary": "The Coca-Cola Company, a beverage company, manufactures and sells various nonalcoholic beverages in the United States and internationally. The company provides Trademark Coca-Cola, sparkling soft drinks and flavors; water, sports, coffee, and tea; juice, value-added dairy, and plant-based beverages; and emerging beverages. It also offers beverage concentrates and syrups, as well as fountain syrups",
+      "listed_since": "1962"
+    },
+    "BNS.TO": {
+      "market_cap": 160702742528,
+      "profit_margin": 0.28430998,
+      "return_on_equity": 0.11459,
+      "debt_to_equity_pct": null,
+      "revenue_growth_yoy": 0.117,
+      "dividend_yield_pct": 3.46,
+      "employees": 81734,
+      "currency": "CAD",
+      "business_summary": "The Bank of Nova Scotia provides various banking products and services in Canada, the United States, Mexico, Peru, Chile, Colombia, the Caribbean and Central America, and internationally. It operates through Canadian Banking, International Banking, Global Wealth Management, and Global Banking and Markets segments. The company offers financial advice and solutions, and banking products, including d",
+      "listed_since": "1995"
+    },
+    "BCE.TO": {
+      "market_cap": 28535289856,
+      "profit_margin": 0.102290004,
+      "return_on_equity": 0.11132,
+      "debt_to_equity_pct": 169.607,
+      "revenue_growth_yoy": 0.022,
+      "dividend_yield_pct": 5.72,
+      "employees": 38683,
+      "currency": "CAD",
+      "business_summary": "BCE Inc., a communications company, provides wireless, wireline, internet, streaming services, and television (TV) services to residential, business, and wholesale customers in Canada. The company operates through three segments: Bell Communication and Technology Services Canada, Bell Communication and Technology Services United States, and Bell Media. The Bell Communication and Technology Service",
+      "listed_since": "1996"
+    },
+    "L.TO": {
+      "market_cap": 80811196416,
+      "profit_margin": 0.04295,
+      "return_on_equity": 0.24481001,
+      "debt_to_equity_pct": 148.922,
+      "revenue_growth_yoy": 0.041,
+      "dividend_yield_pct": 0.89,
+      "employees": 220000,
+      "currency": "CAD",
+      "business_summary": "Loblaw Companies Limited, a food and pharmacy company, provides grocery, pharmacy and healthcare services, health and beauty products, apparel, general merchandise, financial services, and wireless mobile products and services in Canada and the United States. It operates through two segments, Retail and Financial Services. The Retail segment operates corporate and franchise-owned retail food, and ",
+      "listed_since": "1995"
+    },
+    "ABX.TO": {
+      "market_cap": 87376158720,
+      "profit_margin": 0.30315,
+      "return_on_equity": 0.27011,
+      "debt_to_equity_pct": 12.532,
+      "revenue_growth_yoy": 0.223,
+      "dividend_yield_pct": 1.86,
+      "employees": null,
+      "currency": "CAD",
+      "business_summary": "Barrick Mining Corporation engages in the exploration, development, production, and sale of mineral properties. It explores for gold, copper, silver, and energy materials. The company was formerly known as Barrick Gold Corporation and changed its name to Barrick Mining Corporation in May 2025. Barrick Mining Corporation was founded in 1983 and is based in Toronto, Canada.",
+      "listed_since": "1995"
     }
   }
 }

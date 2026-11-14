@@ -109,7 +109,7 @@ Processing is documented in the technical documentation §4:
 ```
 server.py               FastAPI: JSON + streaming (SSE) API, serves the UI
 web/                    UI (HTML/CSS/JS, no framework)
-src/universe.py         31-asset starter universe + look-through metadata (assumptions labelled)
+src/universe.py         50-asset universe (31 starter + 19 supplemental) + look-through metadata (assumptions labelled)
 src/analytics.py        deterministic toolbox (all numbers)
 src/rules.py            verdict ceiling + computed counterfactuals
 src/agents.py           role agents (Bedrock)

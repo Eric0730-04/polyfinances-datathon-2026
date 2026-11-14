@@ -4,7 +4,7 @@
   "period": "2026-05-31",
   "filed": "2026-07-29",
   "url": "https://www.sec.gov/Archives/edgar/data/52848/000005284826000891/vg_esgusstocketf.htm",
-  "fetched_at_utc": "2026-11-14T18:22:21+00:00",
+  "fetched_at_utc": "2026-11-14T19:03:43+00:00",
   "method": "A company listed in the schedule passed the ESGV index screens; absence means excluded (the filing does not state the reason). Non-US companies are outside ESGV's universe.",
   "screen_description": "ESGV tracks the FTSE US All Cap Choice Index, which excludes companies involved in e.g. fossil fuels, weapons, tobacco, alcohol, gambling, adult content, nuclear power, and companies failing controversy/diversity criteria (issuer methodology).",
   "tickers": {
@@ -18,6 +18,13 @@
     "JNJ": "not held",
     "PG": "held",
     "XOM": "not held",
+    "META": "held",
+    "AMD": "held",
+    "PLTR": "not held",
+    "LLY": "held",
+    "COST": "held",
+    "BRK-B": "not held",
+    "KO": "held",
     "RY.TO": "not covered (non-US)",
     "TD.TO": "not covered (non-US)",
     "MFC.TO": "not covered (non-US)",
@@ -27,6 +34,10 @@
     "FTS.TO": "not covered (non-US)",
     "ATD.TO": "not covered (non-US)",
     "SHOP.TO": "not covered (non-US)",
-    "CSU.TO": "not covered (non-US)"
+    "CSU.TO": "not covered (non-US)",
+    "BNS.TO": "not covered (non-US)",
+    "BCE.TO": "not covered (non-US)",
+    "L.TO": "not covered (non-US)",
+    "ABX.TO": "not covered (non-US)"
   }
 }

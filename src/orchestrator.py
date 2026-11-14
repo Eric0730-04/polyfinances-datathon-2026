@@ -63,14 +63,14 @@ def _validate_action(a, persona, request=""):
 
 
 def _universe_groups():
-    groups = {"Canadian stocks": [], "US stocks": [], "ETFs (funds)": [], "Crypto": []}
+    groups = {"Canadian stocks": [], "US stocks": [], "Funds (ETFs)": [], "Crypto": []}
     for t, m in UNIVERSE.items():
         if t == "CASH":
             continue
         if m["asset_class"] == "crypto":
             groups["Crypto"].append(t)
         elif m["diversified"] or m["asset_class"] in ("fixed_income", "cash_equivalent", "commodity"):
-            groups["ETFs (funds)"].append(t)
+            groups["Funds (ETFs)"].append(t)
         elif t.endswith(".TO"):
             groups["Canadian stocks"].append(t)
         else:
@@ -105,9 +105,11 @@ def _needs_info(a, issues, persona):
         return res
     if "out_of_universe" in issues:
         what = asked or "That security"
-        res.update(headline=f"{what} isn't one of the 31 assets SecondLook can analyse.",
-                   plain_summary="This prototype only analyses the official starter universe, so every number can be "
-                                 "computed from documented data. Pick one of the assets below, or a similar one.",
+        n = len(UNIVERSE) - 1  # excluding the synthetic CASH line
+        res.update(headline=f"{what} isn't one of the {n} assets SecondLook can analyse.",
+                   plain_summary="This prototype only analyses assets with documented, validated price history (the "
+                                 "official starter universe plus our supplemental assets), so every number can be "
+                                 "computed. Pick one of the assets below, or a similar one.",
                    followup_question="Which of these did you mean?", universe_groups=_universe_groups())
         return res
     if "unclear" in issues:

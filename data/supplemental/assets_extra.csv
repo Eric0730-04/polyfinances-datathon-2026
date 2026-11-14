@@ -1,0 +1,20 @@
+asset_id,ticker,name,asset_class,market,currency,sector
+X01,META,Meta Platforms,equity,NASDAQ,USD,Communication Services
+X02,AMD,Advanced Micro Devices,equity,NASDAQ,USD,Information Technology
+X03,PLTR,Palantir Technologies,equity,NASDAQ,USD,Information Technology
+X04,LLY,Eli Lilly,equity,NYSE,USD,Health Care
+X05,COST,Costco Wholesale,equity,NASDAQ,USD,Consumer Staples
+X06,BRK-B,Berkshire Hathaway (Class B),equity,NYSE,USD,Financials
+X07,KO,Coca-Cola,equity,NYSE,USD,Consumer Staples
+X08,BNS.TO,Bank of Nova Scotia,equity,TSX,CAD,Financials
+X09,BCE.TO,BCE Inc.,equity,TSX,CAD,Communication Services
+X10,L.TO,Loblaw Companies,equity,TSX,CAD,Consumer Staples
+X11,XEF.TO,iShares Core MSCI EAFE IMI Index ETF,etf_equity,TSX,CAD,Broad market (International developed)
+X12,XEC.TO,iShares Core MSCI Emerging Markets IMI Index ETF,etf_equity,TSX,CAD,Broad market (Emerging markets)
+X13,XEQT.TO,iShares Core Equity ETF Portfolio,etf_equity,TSX,CAD,Broad market (Global all-equity)
+X14,VDY.TO,Vanguard FTSE Canadian High Dividend Yield Index ETF,etf_equity,TSX,CAD,Broad market (Canada dividend)
+X15,XESG.TO,iShares ESG Aware MSCI Canada Index ETF,etf_equity,TSX,CAD,"Broad market (Canada, ESG-screened)"
+X16,ICLN,iShares Global Clean Energy ETF,etf_equity,NASDAQ,USD,Clean energy (Global)
+X17,CASH.TO,Global X High Interest Savings ETF,etf_cash,TSX,CAD,Cash (high-interest savings)
+X18,SOL-USD,Solana,crypto,Crypto (24/7),USD,Crypto asset
+X19,ABX.TO,Barrick Mining Corporation,equity,TSX,CAD,Materials

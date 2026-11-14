@@ -103,6 +103,7 @@ Provisioning is idempotent: `scripts/setup_aws.py`. Credentials are never stored
 | Data | Source | Date | Used for |
 |---|---|---|---|
 | Daily prices, `adj_close` (31 assets) | AlphaForge starter pack: Yahoo Finance via yfinance | 2021-11-12 to 2026-11-12, retrieved 2026-11-13 | Volatility, drawdowns, risk units, historical stress replays |
+| Daily prices for **19 supplemental assets** | **Supplemental**: same source, window and format (`scripts/fetch_extra_assets.py` → `data/supplemental/prices_extra.csv`), validated for duplicates, gaps and non-positive prices | 2021-11-12 to 2026-11-12 | Fill gaps the personas expose. **International:** XEF.TO, XEC.TO, XEQT.TO. **Canadian ESG and clean energy:** XESG.TO, ICLN. **Established and income names:** BRK-B, KO, COST, BNS.TO, BCE.TO, L.TO, VDY.TO, CASH.TO. **AI and growth names investors ask about:** META, AMD, PLTR, LLY. **Other:** SOL-USD, ABX.TO. |
 | USD/CAD | Starter pack: Bank of Canada Valet FXUSDCAD | same window | Convert USD assets to CAD |
 | Policy rate, GoC 2y/10y, CPI (CA), US rates | Starter pack: Bank of Canada Valet, FRED | same window | Cash accrual, macro context, real cash yield |
 | Asset universe and GICS sectors | Starter pack `assets_universe.csv` | static | Sector of single stocks, asset class |

@@ -1,0 +1,125 @@
+{
+  "source": "Yahoo Finance via yfinance (same as starter prices_daily.csv)",
+  "fetched_at_utc": "2026-11-14T19:03:16+00:00",
+  "window": "2021-11-12 to 2026-11-12",
+  "adj_close": "split and dividend adjusted (Yahoo method)",
+  "why": {
+    "META": "AI / big tech (Amira)",
+    "AMD": "AI chips (Amira)",
+    "PLTR": "highly publicised AI name",
+    "LLY": "non-tech growth (Amira)",
+    "COST": "established quality (Robert)",
+    "BRK-B": "established quality (Robert)",
+    "KO": "established income (Robert)",
+    "BNS.TO": "Canadian income (Robert)",
+    "BCE.TO": "Canadian income (Robert)",
+    "L.TO": "Canadian defensive (Robert, Mateo)",
+    "XEF.TO": "international diversification",
+    "XEC.TO": "international diversification",
+    "XEQT.TO": "one-ticket global equity",
+    "VDY.TO": "income (Robert)",
+    "XESG.TO": "Canadian ESG (Mateo)",
+    "ICLN": "thematic ESG (Mateo)",
+    "CASH.TO": "tradable cash alternative",
+    "SOL-USD": "crypto beyond BTC/ETH (Amira)",
+    "ABX.TO": "Canadian materials / gold miner"
+  },
+  "rows": 24417,
+  "per_ticker": {
+    "ABX.TO": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "AMD": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "BCE.TO": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "BNS.TO": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "BRK-B": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "CASH.TO": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "COST": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "ICLN": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "KO": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "L.TO": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "LLY": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "META": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "PLTR": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "SOL-USD": {
+      "count": "1827",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "VDY.TO": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "XEC.TO": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "XEF.TO": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "XEQT.TO": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    },
+    "XESG.TO": {
+      "count": "1255",
+      "min": "2021-11-12",
+      "max": "2026-11-12"
+    }
+  }
+}
