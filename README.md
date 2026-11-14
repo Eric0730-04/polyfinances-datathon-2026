@@ -14,6 +14,7 @@ SecondLook takes an investor's own idea, for example *"everyone is talking about
 | Evaluation results | [`docs/evaluation.md`](docs/evaluation.md) |
 | One-pager | [`docs/one_pager.md`](docs/one_pager.md) |
 | Video script | [`docs/video_script.md`](docs/video_script.md) |
+| **Team hand-off (start here)** | [`docs/HANDOFF.md`](docs/HANDOFF.md) |
 
 ## What it shows (official personas)
 
