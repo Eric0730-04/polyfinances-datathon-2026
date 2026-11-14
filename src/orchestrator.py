@@ -158,6 +158,13 @@ def run(persona: dict, request: str, action_override: dict | None = None, on_ste
     if re.search(r"\bnew money\b|\bfresh money\b", request, re.I) and action.get("funding") != "new_money" and not errs:
         tr.step("validator", "deterministic", {"correction": f"request says 'new money': funding {action.get('funding')} -> new_money"})
         action["funding"], action["funding_goal_id"] = "new_money", None
+    if (not errs and action.get("goal_named") is False and action.get("funding") != "new_money"
+            and action.get("funding_goal_id") and action.get("goal_id") != action["funding_goal_id"]
+            and not re.search(r"\b(for|towards?|into) my\b", request, re.I)):
+        # money taken from a goal's savings keeps serving that goal unless the investor says otherwise
+        tr.step("validator", "deterministic", {"correction": f"no goal named and money comes from goal "
+                                               f"'{action['funding_goal_id']}': goal {action.get('goal_id')} -> {action['funding_goal_id']}"})
+        action["goal_id"] = action["funding_goal_id"]
     if errs:
         tr.step("validator", "deterministic", {"issues": errs, "intake_ambiguities": action.get("ambiguities", [])})
         tr.data["result"] = _needs_info(action, errs, persona)

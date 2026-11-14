@@ -9,8 +9,9 @@ Self-directed investors have more data than ever, but no one to tell them when a
 The investor states their idea in plain language. SecondLook answers one question: **is this idea consistent with what you told us about yourself, and why?**
 
 - **Verdict:** ✔ consistent / ◐ consistent only under conditions / ✖ inconsistent / ? insufficient data.
-- **Explanation:** specific reasons, "this no longer holds if…", and before/after charts. Facts, assumptions and fiction are labelled separately.
-- **Computed variants** of the same idea: a smaller amount, a different funding source, a swap. These are information, not advice.
+- **Explanation:** specific reasons, the before → after numbers that decided it, and charts. Facts, assumptions and fiction are labelled separately.
+- **Computed variants** that would change the verdict (smaller amount, new money, a swap, a diversified fund, a longer-term goal), or "the verdict holds". Information, not advice.
+- **Interactive:** an instant what-if simulator, a follow-up chat that only answers from the analysis (what-ifs computed by the rules engine), a side-by-side comparison of investors, and **create your own investor**.
 
 ### Agentic approach
 - **9 Amazon Bedrock calls per analysis** (Nova 2 Lite), each with one job:
@@ -26,7 +27,7 @@ The investor states their idea in plain language. SecondLook answers one questio
 ### Originality
 - **Challenges instead of agreeing.** Robert's $60k Tesla idea is ✖: his retirement money's risk goes 56% → 111% against a 65% limit. A $10k variant is ◐ because it conflicts with his stated preference for stability.
 - **"High risk ≠ anything goes".** Amira's $15k NVIDIA idea breaks her own single-name, tech-sector and risk limits.
-- **Beyond risk and return.** Mateo's switch from ESGV to SPY raises his indirect fossil-fuel exposure. SecondLook also says plainly that controversy data is *not verified*.
+- **Beyond risk and return.** Mateo's switch from ESGV to SPY raises his indirect fossil-fuel exposure. For US stocks it checks a public ESG screen from an SEC filing (e.g. J&J is excluded) and says plainly what it can't verify, such as the reason for an exclusion or Canadian stocks.
 - **Tolerance ≠ capacity.** A high-tolerance saver still can't put condo money due in 2.5 years into QQQ.
 
 ### Data
@@ -37,7 +38,8 @@ Risk units are measured volatility relative to the S&P 500. Stress tests include
 ### Explainability and trust
 - Every run produces an audit trace stored in **Amazon S3**, with each agent's output, latency, tokens and the data provenance.
 - An **Amazon Bedrock Guardrail** blocks guaranteed-return claims and PII, and logs trade-instruction language.
-- **Evaluation:** 36 live end-to-end runs. The verdict matched the expected one in 36/36 and was never more permissive than expected. Repeats agreed in 18/18 cases, and 845/847 figures traced to data. The runs included a prompt-injection attempt.
+- **Public demo on AWS Lambda** (container in Amazon ECR, HTTPS link): it scales to zero, with a concurrency cap and per-visitor quotas.
+- **Evaluation:** 36 live end-to-end runs. The verdict matched the expected one in 36/36 and was never more permissive than expected. Repeats agreed in 18/18 cases, and 772/775 figures traced to data. The runs included a prompt-injection attempt.
 
 ### User benefit
 A 15-second second opinion that respects the investor's autonomy. It is clear enough for a novice and precise enough for an expert, and every claim is verifiable.

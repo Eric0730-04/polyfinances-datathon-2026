@@ -24,8 +24,25 @@ SecondLook takes an investor's own idea, for example *"everyone is talking about
 |---|---|---|
 | Robert, 59, low-moderate, 3–5y | Move $60k from XBB into TSLA | ✖ breaks his risk budget (56% → 111% vs 65%) and 10% single-name cap. Computed variant: $10k → ◐ (conflicts with his stated preference for stability) |
 | Amira, 26, high risk, 15y+ | $15k new money into NVDA | ✖ "high risk ≠ anything goes": single name 29% > 15%, tech 59% > 50%, risk 184% > 150% |
-| Mateo, 41, moderate, ESG | Switch $20k from ESGV to SPY | ◐ fossil-fuel exposure through SPY rises; controversy data explicitly "not verified" |
+| Mateo, 41, moderate, ESG | Switch $20k from ESGV to SPY | ◐ fossil-fuel exposure through SPY rises |
+| Mateo | $8k new money into Johnson & Johnson | ◐ excluded by Vanguard's ESG fund screen, per its SEC filing; the reason is not disclosed, and the app says so |
 | Maya (optional near-term purchase) | $15k of condo money into QQQ | ✖ tolerance is high, but capacity for a 2.5-year goal is not |
+
+## What you can do in the app
+
+- **Check an idea** in plain language. You get:
+  - a verdict (✔ consistent / ◐ with conditions / ✖ inconsistent / ? needs more information);
+  - the reasons, and a **before → after** panel for the numbers that decided it;
+  - tabs for rules & limits, portfolio X-ray, stress tests, the asset, the agent debate, and evidence & audit.
+- **Versions that would change the verdict** (smaller amount, new money, a swap, a diversified fund, a longer-horizon goal), computed with the same rules. When none changes it, the app says *"The verdict holds"*. *"When would this answer be different?"* sits in a collapsed section.
+- **What-if simulator:** sliders for amount, asset, funding, goal, horizon and risk profile. The rules re-run instantly, with no AI involved.
+- **Follow-up chat** under each answer:
+  - it answers only from that analysis, and its numbers are verified;
+  - "what if" questions are computed by the rules engine, not guessed;
+  - it refuses to predict prices.
+- **Compare investors:** the same idea for every persona, in parallel.
+- **Create your own investor:** name, age, risk profile, goals with horizons, holdings and limits, starting from four templates. It's validated by the server and saved only in your browser.
+- **Follow-up questions** when something is missing, with one-click answers. Plain-language error messages.
 
 ## Architecture
 
@@ -47,7 +64,7 @@ Each component and the reason it exists are described in [`docs/technical_docume
 
 ## AWS services
 
-- **Amazon Bedrock** (`global.amazon.nova-2-lite-v1:0`, Converse API) for all 9 agent calls per analysis.
+- **Amazon Bedrock** (`global.amazon.nova-2-lite-v1:0`, Converse API) for the 9 agent calls of each analysis, plus the follow-up chat agent when the investor asks a question.
 - **Amazon Bedrock Guardrails**:
   - blocks guaranteed-return claims and PII;
   - detects and logs trade-instruction language without blocking it.
@@ -75,7 +92,7 @@ export AWS_PROFILE=team10 AWS_DEFAULT_REGION=us-east-1
 Other entry points:
 
 ```bash
-.venv/bin/python -m pytest -q                                   # 43 deterministic tests (no AWS needed)
+.venv/bin/python -m pytest -q                                   # 54 deterministic tests (no AWS needed)
 .venv/bin/python scripts/run_case.py robert "Move \$60,000 from XBB into TSLA"   # one analysis from the CLI
 .venv/bin/python scripts/evaluate.py --repeats 2                # end-to-end evaluation → docs/evaluation.md
 .venv/bin/python scripts/fetch_supplemental.py                  # refresh supplemental public data (see Data)
@@ -96,7 +113,8 @@ Demo links:
 | Data | Source | Notes |
 |---|---|---|
 | `data/starter/` | Official AlphaForge starter pack: Yahoo Finance (yfinance), Bank of Canada Valet, FRED | 2021-11-12 to 2026-11-12. Terms in `data/starter/sources_metadata.csv` |
-| `data/supplemental/etf_sector_weights.json` | Yahoo fund sector breakdown via yfinance | Snapshot; look-through for XIU.TO, SPY, QQQ, ESGV |
+| `data/supplemental/assets_extra.csv`, `prices_extra.csv` | Yahoo Finance via yfinance, same source, window and format as the starter pack (`scripts/fetch_extra_assets.py`) | **19 supplemental assets** (international and emerging funds, Canadian ESG, income names, AI names, Solana), validated. Universe = **50 assets**, listed in the technical documentation, Appendix A |
+| `data/supplemental/etf_sector_weights.json` | Yahoo fund sector breakdown via yfinance | Snapshot; look-through for the 10 equity ETFs |
 | `data/supplemental/esg_screen.json` | **SEC EDGAR Form N-PORT**: Vanguard ESG U.S. Stock ETF holdings as of 2026-05-31 (filed 2026-07-29) | Which US stocks pass a published ESG/controversy screen (e.g. XOM and JNJ do not) |
 | `data/supplemental/fundamentals.json` | Yahoo quote summary via yfinance | Company snapshot (size, margins, leverage, growth, listing age); context only |
 | `personas/` | Fictional, based on the official brief | Amira, Mateo, Robert + optional Maya |
@@ -119,9 +137,12 @@ src/rules.py            verdict ceiling + computed counterfactuals
 src/agents.py           role agents (Bedrock)
 src/orchestrator.py     pipeline, parallelism, trace, guardrail, S3
 src/grounding.py        numeric grounding check
-src/aws.py, src/bedrock.py   AWS integration
+src/personas.py         validation of custom investors
+src/errors.py           plain-language error messages
+src/aws.py, src/bedrock.py   AWS integration (S3, Guardrails, Bedrock)
+Dockerfile              container for the public deployment (Lambda Web Adapter)
 personas/               fictional personas (JSON)
-scripts/                setup, CLI, evaluation, data refresh
+scripts/                setup, CLI, evaluation, data refresh, deploy_aws.py
 tests/                  deterministic tests
 docs/                   documentation, evaluation, one-pager, video script, official case
 ```

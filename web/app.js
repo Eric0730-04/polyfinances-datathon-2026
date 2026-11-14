@@ -300,13 +300,36 @@ function addDone(pid, request, trace, tab = null) {
   if (state.pid === pid) renderThread(item.id);
 }
 
+// Open a finished analysis (from Compare or History): switch view, reuse the thread item if it exists, then jump to it
+// after the page has rendered (an instant jump, so chart drawing can't cancel a smooth scroll).
+function openAnalysis(pid, request, trace) {
+  showView("check");
+  if (state.pid !== pid) selectPersona(pid);
+  let item = thread(pid).find((x) => x.trace?.run_id === trace.run_id);
+  if (!item) {
+    item = { id: `m${++state.seq}`, pid, request, status: "done", trace };
+    thread(pid).push(item);
+    addHistory(item);
+  }
+  renderThread();
+  jumpTo(item.id);
+}
+function jumpTo(id) {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 16, behavior: "auto" });
+    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  }));
+}
+
 function addHistory(item) {
   state.history.unshift(item);
   $("#history").innerHTML = state.history.slice(0, 12).map((h) => { const v = vinfo(h.trace.result.verdict);
     return `<div class="h-item" data-h="${h.id}"><span class="dot" style="background:var(--${v.cls})"></span><span class="txt"><b>${esc(persona(h.pid).name)}</b> · ${esc(h.request)}</span></div>`; }).join("");
   $$(".h-item").forEach((el) => el.addEventListener("click", () => {
     const h = state.history.find((x) => x.id === el.dataset.h);
-    showView("check"); selectPersona(h.pid); document.getElementById(h.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    showView("check"); if (state.pid !== h.pid) selectPersona(h.pid); renderThread(); jumpTo(h.id);
   }));
 }
 
@@ -357,6 +380,10 @@ function flowHtml(trace, activeIdx = null) {
 }
 
 // ------------------------------------------------------------------ answer
+function goalLabel(trace, gid) {
+  const g = (trace.persona_snapshot?.goals || persona(trace.persona_id)?.goals || []).find((x) => x.id === gid);
+  return g ? g.label : gid;
+}
 function goalOfAction(trace) {
   const gid = trace.action?.goal_id;
   return (trace.toolbox?.rules.buckets_after || []).find((g) => g.goal_id === gid);
@@ -372,7 +399,7 @@ function answerHtml(it) {
     ${r.verdict_adjustment ? `<p class="override">Rule override: ${esc(r.verdict_adjustment)}</p>` : ""}
     <div class="flow-label">How the agents reached this</div>${flowHtml(t)}
     <div class="meta-row">
-      ${tool ? `<span>Interpreted as <b>${esc(a.action)} ${money(+a.amount_cad)} of ${esc(a.ticker)}</b> · funded by <b>${esc(a.funding === "new_money" ? "new money" : a.funding)}</b> · goal <b>${esc(a.goal_id)}</b></span>` : r.understood ? `<span>Understood so far: <b>${esc(r.understood)}</b></span>` : ""}
+      ${tool ? `<span>Interpreted as <b>${esc(a.action)} ${money(+a.amount_cad)} of ${esc(a.ticker)}</b> · funded by <b>${esc(a.funding === "new_money" ? "new money" : a.funding)}</b> · for <b>${esc(goalLabel(t, a.goal_id))}</b>${a.goal_named === false ? ' <span class="tg tg-assumed" title="The request did not name a goal; SecondLook used the longest-horizon goal. Say the goal in your request to change it.">assumed</span>' : ""}</span>` : r.understood ? `<span>Understood so far: <b>${esc(r.understood)}</b></span>` : ""}
       ${t.grounding?.summary ? `<span>Numbers verified <b>${esc(t.grounding.summary.replace(" figures traced to data", ""))}</b></span>` : ""}
       <span>Run <b>${esc(t.run_id)}</b> · ${t.elapsed_s}s</span></div>`;
   if (!tool) return `<div class="card answer">${head}</div>${followupHtml(it)}`;
@@ -450,15 +477,15 @@ function tabOverview(t) {
   const changed = (t.toolbox.counterfactuals || []).filter((c) => c.changes_result ?? c.ceiling !== t.toolbox.rules.ceiling);
   const better = changed.filter((c) => (c.direction || "better") === "better");
   const ol = (xs) => `<ol class="plain">${(xs || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ol>`;
-  return `<div class="ov">
-      <div><h4 class="h">Why</h4>${ol(r.key_reasons)}</div>
-      <div><h4 class="h">What would change this answer</h4>${ol(r.no_longer_valid_if)}</div>
-    </div>
+  return `<div><h4 class="h">Why</h4>${ol(r.key_reasons)}</div>
     ${changed.length ? `<h4 class="h" style="margin-top:22px">${better.length ? "Versions of this idea that would change the verdict" : "Versions that would make it worse"}
       <span class="muted small" style="font-weight:400"> · recomputed with the same rules · information, not advice</span></h4>
     <div class="table-wrap"><table class="data vtable"><thead><tr><th style="width:34%">Version</th><th>Verdict</th><th>What changes</th></tr></thead>
       <tbody>${changed.map(variantRow).join("")}</tbody></table></div>` : ""}
     ${robustNote(t, changed)}
+    ${(r.no_longer_valid_if || []).length ? `<details class="more"><summary>When would this answer be different?</summary>
+      <p class="small muted" style="margin:6px 0 4px">Conditions about the investor or the market under which the conclusion would no longer hold. They describe the analysis, they are not suggestions.</p>
+      ${ol(r.no_longer_valid_if)}</details>` : ""}
     ${r.debate_takeaway ? `<p class="takeaway"><b>Judge's takeaway.</b> ${esc(r.debate_takeaway)}</p>` : ""}`;
 }
 
@@ -762,7 +789,7 @@ async function compare() {
         ${g ? `<div class="small muted">Goal risk ${pct(g.risky_share)} vs limit ${pct(g.allowed_max_risky)}</div>` : ""}
         <ul>${(r.key_reasons || []).slice(0, 3).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
         <button class="link" data-open="${p.id}">Open full analysis →</button>`;
-      el.querySelector("[data-open]").addEventListener("click", () => { showView("check"); selectPersona(p.id); addDone(p.id, req, t); });
+      el.querySelector("[data-open]").addEventListener("click", () => openAnalysis(p.id, req, t));
     });
   } catch (e) { $("#compareGrid").innerHTML = errorCard(e.f || { title: "Comparison failed", technical: String(e) }); }
   finally { $("#compareBtn").disabled = false; }
@@ -834,7 +861,7 @@ function renderBuilder() {
         <div class="card b-sec"><h3>Limits &amp; preferences <span class="note">leave blank for none</span></h3>
           <div class="b-grid"><label>Minimum cash ($)<input data-c="min_liquid_cad" type="number" min="0" step="1000" value="${c.min_liquid_cad ?? ""}"></label>
             <label>Max in one stock / crypto (%)<input data-c="max_single_position_pct" type="number" min="0" max="100" value="${c.max_single_position_pct ?? ""}"></label>
-            <label>Max in crypto (%)<input data-c="max_crypto_pct" type="number" min="0" max="100" value="${c.max_crypto_pct ?? ""}"></label>
+            <label>Max in crypto (%)<input data-c="max_crypto_pct" type="number" min="0" max="100" value="${c.exclude_crypto ? "" : c.max_crypto_pct ?? ""}" ${c.exclude_crypto ? 'disabled placeholder="no crypto at all"' : ""}></label>
             <label>Max in one sector (%)<input data-c="max_sector_pct" type="number" min="0" max="100" value="${c.max_sector_pct ?? ""}"></label></div>
           ${[["exclude_fossil_fuels", "Avoid fossil fuels and companies excluded by an ESG screen"], ["exclude_crypto", "No crypto at all"], ["avoid_volatile_names", "Prefer stable companies (flag single stocks over 2× S&P 500 volatility)"]]
             .map(([k, l]) => `<label class="check"><input type="checkbox" data-cb="${k}" ${c[k] ? "checked" : ""}> ${l}</label>`).join("")}</div>
@@ -877,7 +904,11 @@ function bindBuilder() {
   $$("[data-g][data-k=label]", B).forEach((i) => i.addEventListener("change", renderBuilder));
   $$("[data-h]", B).forEach((i) => i.addEventListener("input", () => { draft.holdings[+i.dataset.h][i.dataset.k] = i.value; schedulePreview(); }));
   $$("[data-c]", B).forEach((i) => i.addEventListener("input", () => { draft.constraints[i.dataset.c] = i.value === "" ? null : +i.value; schedulePreview(); }));
-  $$("[data-cb]", B).forEach((i) => i.addEventListener("change", () => { draft.constraints[i.dataset.cb] = i.checked; schedulePreview(); }));
+  $$("[data-cb]", B).forEach((i) => i.addEventListener("change", () => {
+    draft.constraints[i.dataset.cb] = i.checked;
+    if (i.dataset.cb === "exclude_crypto") { if (i.checked) draft.constraints.max_crypto_pct = null; renderBuilder(); return; }
+    schedulePreview();
+  }));
   $("[data-addg]", B)?.addEventListener("click", () => { draft.goals.push({ label: "", horizon_years: 5 }); renderBuilder(); });
   $("[data-addh]", B)?.addEventListener("click", () => { draft.holdings.push({ ticker: "SPY", value_cad: 5000, goal: `g${draft.goals.length}` }); renderBuilder(); });
   $$("[data-delg]", B).forEach((b) => b.addEventListener("click", () => {

@@ -33,8 +33,10 @@ def intake(request_text, persona, universe_brief):
             "funding = 'new_money' or the ticker sold to pay for it (e.g. 'CASH' when they say 'my cash', 'ZST.TO' or 'XBB.TO' when they name those funds); "
             "funding_goal_id = the goal whose money is used (e.g. 'condo' if they say 'my condo savings'). "
             "If they pay with cash and do not name a goal for the cash, use the goal that holds that cash. "
-            "If the request does not say which goal the purchase is for, use the investor's LONGEST-horizon goal (never "
-            "the emergency fund) and set goal_named=false; otherwise goal_named=true. "
+            "If the request does not say which goal the purchase is for: when the money comes from a goal's savings or "
+            "holdings (e.g. 'my condo savings', 'from XBB'), the purchase serves THAT SAME goal; only when it is new money, "
+            "use the investor's LONGEST-horizon goal (never the emergency fund). In both cases set goal_named=false; "
+            "otherwise goal_named=true. "
             "If the request says 'new money' (or fresh savings, a bonus, extra money), funding MUST be 'new_money' and "
             "funding_goal_id null; never take it from the emergency fund unless they explicitly say so. "
             "If the security is not in the universe or the amount is missing, set in_scope=false and explain in ambiguities.")

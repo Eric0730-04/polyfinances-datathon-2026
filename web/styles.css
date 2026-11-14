@@ -482,3 +482,13 @@ ol.plain li::marker { color: var(--muted); font-size: 12px; }
 .flow-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 12px 24px 0; border-top: 1px solid var(--line-2); }
 .answer .flow { padding: 8px 24px 12px; border-bottom: 0; }
 .answer .meta-row { padding: 10px 24px; }
+
+/* restored after merge */
+details.more { margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+details.more summary { cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--ink-2); list-style: none; }
+details.more summary::-webkit-details-marker { display: none; }
+details.more summary::before { content: "+"; display: inline-block; width: 16px; color: var(--muted); }
+details.more[open] summary::before { content: "–"; }
+.msg-ai.flash .answer { animation: flash 1.4s ease-out; }
+@keyframes flash { 0% { box-shadow: 0 0 0 3px rgba(37, 99, 235, .45); } 100% { box-shadow: var(--shadow); } }
+.node .nd { flex: none; align-self: center; }

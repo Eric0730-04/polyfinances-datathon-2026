@@ -71,8 +71,10 @@ It never recommends what to buy.
 | Official personas + Maya (optional near-term-purchase scenario) | ✅ `personas/` |
 | Starter data + supplemental data (ETF sectors, SEC N-PORT ESG screen, fundamentals) | ✅ |
 | AWS: Bedrock (Nova 2 Lite), Guardrails, S3 | ✅ |
-| Tests | ✅ 43 deterministic tests |
-| Evaluation | ✅ 36/36 correct, 18/18 stable, 845/847 numbers grounded, see `docs/evaluation.md` |
+| Tests | ✅ 54 deterministic tests |
+| Create your own investor, what-if simulator, follow-up chat | ✅ in the app (see README "What you can do") |
+| UI update from Sarah (PR #1: question-first layout, before/after panel) | ✅ merged; three earlier fixes it overwrote were restored |
+| Evaluation | ✅ 36/36 correct, 18/18 stable, 772/775 numbers grounded, see `docs/evaluation.md` |
 | Technical documentation, one-pager, video script | ✅ in `docs/` |
 | **Video recording** | ⏳ to do, script in `docs/video_script.md` |
 | **Team review of assumptions** (§5) | ⏳ to do |
@@ -137,6 +139,8 @@ Judges may ask about these. They are documented in `docs/technical_documentation
 | `docs/` | Technical documentation, one-pager, video script, evaluation, official case |
 
 ## 7. Gotchas
+
+- **Pull before you edit** (`git pull`). PR #1 was built from an older copy of `web/app.js` and silently reverted three fixes; they've been restored. Small PRs and a quick test before merging avoid this.
 
 - **Credentials expire.** "The AWS credentials have expired or are invalid" in the app means you need fresh ones from the workshop page and a server restart.
 - **Restart the server after code changes.** `uvicorn` isn't started with `--reload`.

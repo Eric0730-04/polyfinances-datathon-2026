@@ -74,7 +74,7 @@ flowchart TD
 | Grounding check | Deterministic | Every percentage or dollar figure the agents write must match a value in the data (within rounding). Unmatched figures are flagged. |
 | Bedrock Guardrail | AWS managed | Last responsible-output screen on every user-facing string. |
 
-A full run makes 9 LLM calls, about 20k tokens and 11 to 16 seconds. Profile and analyst run in parallel, and so does each debate round.
+A full run makes 9 LLM calls, about 25k tokens and about 15 seconds (measured in `evaluation.md`). The optional follow-up chat is a 10th agent, called only when the investor asks a question. Profile and analyst run in parallel, and so does each debate round.
 
 ---
 
@@ -210,19 +210,25 @@ Each variant is re-evaluated with the same rules.
 
 - **App shell:** a left navigation with the investors and a history of checks; the main workspace; a right panel with the profile, goals, limits (tagged stated, assumed or preference) and holdings with their risk multiple.
 - **Investor dashboard:**
-  - KPI tiles: risk budget used vs limit, portfolio value, cash buffer vs minimum, past volatility;
+  - plain-language tiles: risk used vs allowed for the main goal, portfolio value, cash and cash-like funds vs the minimum, typical yearly swing and worst drop;
   - an allocation donut;
-  - a holdings treemap, sized by weight and coloured by risk vs the S&P 500.
-- **Chat-style thread:** the investor asks in plain language. While the agents work, a **live agent-flow diagram** shows each one (Intake → Toolbox → Profile + Market → Debate → Guardian → Judge → Guardrail) with its latency.
+  - a holdings bar list, largest first, each with a risk label vs the S&P 500.
+- **Question-first, chat-style thread:** the investor asks in plain language (suggestion buttons show short labels such as "TSLA · $60k from XBB"). While the agents work, a **live agent-flow line** ("How the agents reached this": Intake → Toolbox → Profile + Market → Debate → Guardian → Judge → Guardrail) shows each step with its latency.
 - **Answer card:**
-  - a verdict badge and a gauge of the goal's risk budget used;
-  - the interpreted action and how many numbers were verified;
-  - tabs: **Overview** (why, what would change it, computed variants), **Rules & limits** (pre-trade checks and risk budget by goal), **Portfolio X-ray** (before/after donuts and look-through tables), **Stress tests** (chart and table), **About the asset** (risk, company snapshot, ESG screen), **Agent debate**, **Evidence & audit** (facts / assumptions / fiction / limits, execution trace, sources, S3 record, raw outputs).
+  - a verdict tag and headline, plus a **"Before → after this idea"** panel with the numbers that decided the verdict (the goal's risk vs its limit, then any limit the idea breaks);
+  - the interpreted action (goal shown by name, marked *assumed* when the request named none) and how many numbers were verified;
+  - tabs: **Overview** (why; the versions of the idea that would change the verdict, or "The verdict holds" when none does; and a collapsed "When would this answer be different?"), **Rules & limits** (pre-trade checks and risk budget by goal), **Portfolio X-ray** (before/after donuts and look-through tables), **Stress tests** (chart and table), **About the asset** (risk, company snapshot, ESG screen), **Agent debate**, **Evidence & audit** (facts / assumptions / fiction / limits, execution trace, sources, S3 record, raw outputs).
 - **What-if simulator** (tab): sliders and selectors for amount, asset, funding source, goal, goal horizon and risk profile. The deterministic rules are recomputed in about 2 ms per change (`POST /api/whatif`, no AI), so the verdict, the goal's risk-budget bar and the triggered rules update live. This is the brief's "change a hypothesis, a scenario, a profile" test, made interactive. A button runs the full multi-agent analysis on the chosen version.
 - **Follow-up chat** (under every answer, `POST /api/chat`): a 10th agent answers questions about *that* analysis only, from a compact grounded view of its trace (verdict, rules, variants, stress tests, macro context, debate).
   - **Ordinary questions** get the same numeric grounding check and Bedrock Guardrail as the main answer. Questions asking for predictions get a plain refusal that explains what SecondLook can show instead.
   - **"What if" questions** (other amount, asset, goal or funding, including assets named in plain words such as "Apple") are evaluated by the **rules engine**, not estimated by the model. The reply text is built from the computed result and shown as an "instant check" card, with a button to run the full analysis.
-- **Compare investors** and **How it works** views.
+- **Compare investors:** the same idea for every investor in parallel, each opening its full analysis in one click.
+- **Create your own investor:**
+  - a form with name, age, risk profile, experience, up to 4 goals with horizons, up to 15 holdings, and limits (minimum cash, max per stock, crypto and sector, plus fossil-fuel, no-crypto and stable-companies switches);
+  - four templates to start from and a live preview of each goal's risk vs limit;
+  - validated on the server (`src/personas.py`, readable error messages), stored only in the visitor's browser and sent with each request, so the server keeps no state;
+  - every analysis keeps a `persona_snapshot` in its audit trace.
+- **How it works:** risk units for all 50 assets, the limits, the verdict rules, sources, macro context and AWS services.
 
 When information is missing, the investor gets a **targeted follow-up question** and can answer it in place.
 It is built deterministically from structured issue codes: out-of-universe security (with an asset picker), missing amount (one-click amounts), unknown goal, an unclear request, or an attempt to override the rules. The raw codes stay in the audit trail.
@@ -282,15 +288,19 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
 
 ## 9. Validation
 
-1. **Deterministic tests** (`pytest`, 29 tests):
+1. **Deterministic tests** (`pytest`, 54 tests, no AWS needed):
    - expected rule outcomes for every persona scenario;
    - personas start within their limits;
    - data window and currency;
    - the risk-unit ordering;
    - CPI publication lag;
    - value conservation on swaps;
-   - ESGV has no Energy, SPY does;
-   - ceiling enforcement.
+   - ESGV has no Energy, SPY does, and the "ESG" XESG.TO still holds Energy;
+   - ceiling enforcement;
+   - counterfactuals report what they fix and when nothing changes;
+   - the 19 supplemental assets load with the full window;
+   - custom-investor validation, including a crypto ban superseding a crypto cap;
+   - every error type maps to a readable message.
 2. **End-to-end evaluation** (`scripts/evaluate.py`, results in [`evaluation.md`](evaluation.md)):
    - 18 cases × 2 repeats with live Bedrock calls;
    - measures exact verdict accuracy, safety (never more permissive than expected), intake accuracy, stability across repeats, numeric grounding, guardrail interventions and latency;
@@ -300,6 +310,7 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
    - We then added verdict definitions, symmetric breach rules, "use the ceiling unless you name a specific extra issue", a narrower guardrail topic, and audit of blocked originals.
    - The second run reached 23/24 exact and 24/24 safe.
    - The pipeline was then re-based on the official starter data and personas.
+   - A later change (when no goal is named, default to the longest-horizon goal) made one case regress to 34/36: Maya's "move my condo savings into QQQ" was filed under her retirement goal and judged consistent. The evaluation caught it. The rule now keeps money taken from a goal's savings in that same goal (an intake instruction plus a deterministic correction logged in the trace), and the suite is back to 36/36.
 4. **Current results** (18 cases × 2 repeats, live Bedrock):
 
    | Metric | Result |
@@ -308,7 +319,7 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
    | Never more permissive than expected | 36/36 |
    | Intake picked the right security | 36/36 |
    | Same verdict on both repeats | 18/18 cases |
-   | Figures traced to data | 845/847 |
+   | Figures traced to data | 772/775 |
    | Judge corrected by the ceiling | 0 |
    | Guardrail blocks after calibration | 0 (detections logged) |
 
@@ -326,7 +337,7 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
 - **Volatility is one risk indicator.** It misses tail and liquidity risk, and a 5-year window is one cycle.
 - **One action at a time.** No multi-step plans, taxes or account types (TFSA/RRSP).
 - **Look-through is approximate.** ETF sectors are a snapshot, and geography and currency come from issuer descriptions.
-- **ESG controversies are not verified.** The fossil-fuel screen is a sector proxy.
+- **ESG evidence is partial.** US stocks are checked against ESGV's holdings (SEC N-PORT), but the filing doesn't give reasons for exclusions, Canadian stocks aren't covered, and the fossil-fuel screen is a sector proxy. Controversies themselves are not scored.
 - **LLM variability:** verdicts can differ between repeats (measured). The rule ceiling bounds the risk to "too cautious", never "too permissive".
 - **The guardrail's trade-instruction classifier over-triggers** on descriptive analysis, so it runs in detect-only mode. Blocked or flagged originals are kept in the audit trail.
 
@@ -343,3 +354,62 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
 ## Reproduce
 
 See the [README](../README.md).
+
+---
+
+## Appendix A. Investable universe (50 assets)
+
+31 assets from the official starter pack + 19 supplemental assets (same source, window and format). A synthetic `CASH` line (high-interest savings accruing the Bank of Canada overnight rate) is also available for holdings, so some lists in the app show 51 entries. "Risk vs S&P 500" is the asset's weekly volatility ÷ SPY's (CAD, 2021-11-12 to 2026-11-12); this table is generated from the data files.
+
+| Ticker | Name | Type | Sector / exposure | Listing currency | Source | Risk vs S&P 500 | ESG screen (US stocks, SEC N-PORT) |
+|---|---|---|---|---|---|---|---|
+| RY.TO | Royal Bank of Canada | Stock | Financials | CAD | Starter pack | 1.01× | not covered (non-US) |
+| TD.TO | Toronto-Dominion Bank | Stock | Financials | CAD | Starter pack | 1.21× | not covered (non-US) |
+| MFC.TO | Manulife Financial | Stock | Financials | CAD | Starter pack | 1.37× | not covered (non-US) |
+| ENB.TO | Enbridge | Stock | Energy | CAD | Starter pack | 1.17× | not covered (non-US) |
+| CNQ.TO | Canadian Natural Resources | Stock | Energy | CAD | Starter pack | 2.15× | not covered (non-US) |
+| CNR.TO | Canadian National Railway | Stock | Industrials | CAD | Starter pack | 1.18× | not covered (non-US) |
+| FTS.TO | Fortis | Stock | Utilities | CAD | Starter pack | 1.00× | not covered (non-US) |
+| ATD.TO | Alimentation Couche-Tard | Stock | Consumer Staples | CAD | Starter pack | 1.68× | not covered (non-US) |
+| SHOP.TO | Shopify | Stock | Information Technology | CAD | Starter pack | 4.37× | not covered (non-US) |
+| CSU.TO | Constellation Software | Stock | Information Technology | CAD | Starter pack | 1.99× | not covered (non-US) |
+| AAPL | Apple | Stock | Information Technology | USD | Starter pack | 1.82× | held |
+| MSFT | Microsoft | Stock | Information Technology | USD | Starter pack | 1.80× | held |
+| NVDA | NVIDIA | Stock | Information Technology | USD | Starter pack | 3.14× | held |
+| GOOGL | Alphabet (Class A) | Stock | Communication Services | USD | Starter pack | 2.17× | held |
+| AMZN | Amazon | Stock | Consumer Discretionary | USD | Starter pack | 2.25× | held |
+| TSLA | Tesla | Stock | Consumer Discretionary | USD | Starter pack | 3.74× | held |
+| JPM | JPMorgan Chase | Stock | Financials | USD | Starter pack | 1.59× | held |
+| JNJ | Johnson & Johnson | Stock | Health Care | USD | Starter pack | 1.23× | not held |
+| PG | Procter & Gamble | Stock | Consumer Staples | USD | Starter pack | 1.17× | held |
+| XOM | Exxon Mobil | Stock | Energy | USD | Starter pack | 1.85× | not held |
+| XIU.TO | iShares S&P/TSX 60 Index ETF | Equity ETF | Broad market (Canada) | CAD | Starter pack | 0.84× |  |
+| SPY | SPDR S&P 500 ETF Trust | Equity ETF | Broad market (U.S.) | USD | Starter pack | 1.00× |  |
+| QQQ | Invesco QQQ Trust (Nasdaq-100) | Equity ETF | Broad market (U.S. growth/tech-heavy) | USD | Starter pack | 1.39× |  |
+| ESGV | Vanguard ESG U.S. Stock ETF | Equity ETF | Broad market (U.S., ESG-screened) | USD | Starter pack | 1.10× |  |
+| XBB.TO | iShares Core Canadian Universe Bond Index ETF | Bond ETF | Bonds (Canada aggregate) | CAD | Starter pack | 0.44× |  |
+| ZST.TO | BMO Ultra Short-Term Bond ETF | Bond ETF | Bonds (Canada ultra short-term) | CAD | Starter pack | 0.03× |  |
+| AGG | iShares Core U.S. Aggregate Bond ETF | Bond ETF | Bonds (U.S. aggregate) | USD | Starter pack | 0.47× |  |
+| TLT | iShares 20+ Year Treasury Bond ETF | Bond ETF | Bonds (U.S. long Treasury) | USD | Starter pack | 1.02× |  |
+| GLD | SPDR Gold Shares | Commodity ETF | Gold | USD | Starter pack | 1.08× |  |
+| BTC-USD | Bitcoin | Crypto | Crypto asset | USD | Starter pack | 3.40× |  |
+| ETH-USD | Ether | Crypto | Crypto asset | USD | Starter pack | 4.39× |  |
+| META | Meta Platforms | Stock | Communication Services | USD | Supplemental | 2.87× | held |
+| AMD | Advanced Micro Devices | Stock | Information Technology | USD | Supplemental | 3.77× | held |
+| PLTR | Palantir Technologies | Stock | Information Technology | USD | Supplemental | 4.58× | not held |
+| LLY | Eli Lilly | Stock | Health Care | USD | Supplemental | 2.29× | held |
+| COST | Costco Wholesale | Stock | Consumer Staples | USD | Supplemental | 1.55× | held |
+| BRK-B | Berkshire Hathaway (Class B) | Stock | Financials | USD | Supplemental | 1.14× | not held |
+| KO | Coca-Cola | Stock | Consumer Staples | USD | Supplemental | 1.09× | held |
+| BNS.TO | Bank of Nova Scotia | Stock | Financials | CAD | Supplemental | 1.15× | not covered (non-US) |
+| BCE.TO | BCE Inc. | Stock | Communication Services | CAD | Supplemental | 1.31× | not covered (non-US) |
+| L.TO | Loblaw Companies | Stock | Consumer Staples | CAD | Supplemental | 1.35× | not covered (non-US) |
+| XEF.TO | iShares Core MSCI EAFE IMI Index ETF | Equity ETF | Broad market (International developed) | CAD | Supplemental | 0.95× |  |
+| XEC.TO | iShares Core MSCI Emerging Markets IMI Index ETF | Equity ETF | Broad market (Emerging markets) | CAD | Supplemental | 1.05× |  |
+| XEQT.TO | iShares Core Equity ETF Portfolio | Equity ETF | Broad market (Global all-equity) | CAD | Supplemental | 0.86× |  |
+| VDY.TO | Vanguard FTSE Canadian High Dividend Yield Index ETF | Equity ETF | Broad market (Canada dividend) | CAD | Supplemental | 0.82× |  |
+| XESG.TO | iShares ESG Aware MSCI Canada Index ETF | Equity ETF | Broad market (Canada, ESG-screened) | CAD | Supplemental | 0.88× |  |
+| ICLN | iShares Global Clean Energy ETF | Equity ETF | Clean energy (Global) | USD | Supplemental | 1.64× |  |
+| CASH.TO | Global X High Interest Savings ETF | Cash ETF | Cash (high-interest savings) | CAD | Supplemental | 0.02× |  |
+| SOL-USD | Solana | Crypto | Crypto asset | USD | Supplemental | 6.14× |  |
+| ABX.TO | Barrick Mining Corporation | Stock | Materials | CAD | Supplemental | 2.52× | not covered (non-US) |
