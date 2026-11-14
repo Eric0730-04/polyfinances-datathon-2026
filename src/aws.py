@@ -56,7 +56,10 @@ def guard(text: str) -> dict:
     br = boto3.Session(region_name=REGION).client("bedrock-runtime")
     r = br.apply_guardrail(guardrailIdentifier=cfg["guardrail_id"], guardrailVersion=cfg["guardrail_version"],
                            source="OUTPUT", content=[{"text": {"text": text}}])
-    topics = [t["name"] for a in r.get("assessments", []) for t in a.get("topicPolicy", {}).get("topics", [])]
+    topics = [t["name"] for a in r.get("assessments", []) for t in a.get("topicPolicy", {}).get("topics", [])
+              if t.get("action", "BLOCKED") == "BLOCKED"]
+    detected = [t["name"] for a in r.get("assessments", []) for t in a.get("topicPolicy", {}).get("topics", [])
+                if t.get("action") == "NONE" and t.get("detected", True)]
     words = [w["match"] for a in r.get("assessments", []) for w in a.get("wordPolicy", {}).get("customWords", [])]
     out_text = r["outputs"][0]["text"] if r.get("outputs") else text
-    return {"action": r["action"], "text": out_text, "topics": topics, "words": words}
+    return {"action": r["action"], "text": out_text, "topics": topics, "words": words, "detected_only": detected}

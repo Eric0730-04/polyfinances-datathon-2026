@@ -7,7 +7,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 from src import agents, aws
-from src.analytics import (exposures, portfolio_risk, provenance, security_metrics, stress_tests)
+from src.analytics import (esg_view, exposures, macro_context, portfolio_risk, provenance, security_metrics,
+                           stress_tests)
 from src.bedrock import DEFAULT_MODEL
 from src.grounding import check as grounding_check
 from src.rules import counterfactuals, enforce, evaluate
@@ -86,7 +87,10 @@ def run(persona: dict, request: str, action_override: dict | None = None, on_ste
         "stress_before": stress_tests(holdings), "stress_after": stress_tests(after),
         "rules": {k: ev[k] for k in ("constraints", "ceiling", "ceiling_reasons", "buckets_before", "buckets_after", "warnings")},
         "counterfactuals": counterfactuals(persona, holdings, action),
+        "macro_context": macro_context(),
+        "esg_before": esg_view(persona, holdings), "esg_after": esg_view(persona, after),
     }
+    ev["esg_view"] = {"before": tool["esg_before"], "after": tool["esg_after"]} if tool["esg_after"] else None
     tr.step("toolbox", "deterministic", {"rule_ceiling": ev["ceiling"], "ceiling_reasons": ev["ceiling_reasons"],
                                           "n_counterfactuals": len(tool["counterfactuals"])})
     tr.data["toolbox"] = tool
@@ -96,7 +100,8 @@ def run(persona: dict, request: str, action_override: dict | None = None, on_ste
     with ThreadPoolExecutor(2) as ex:
         fp = ex.submit(agents.profile, persona, ev, action)
         fa = ex.submit(agents.analyst, action, tool["security"], tool["exposures_before"], tool["exposures_after"],
-                       tool["risk_before"], tool["risk_after"], tool["stress_before"], tool["stress_after"], tool["provenance"])
+                       tool["risk_before"], tool["risk_after"], tool["stress_before"], tool["stress_after"], tool["provenance"],
+                       tool["macro_context"], ev["esg_view"])
         prof, pm = fp.result()
         ana, am = fa.result()
     tr.step("profile", "llm", prof, pm)
@@ -128,12 +133,14 @@ def run(persona: dict, request: str, action_override: dict | None = None, on_ste
 
     # 6. Judge
     notify("Judge: verdict and explanation")
-    bundle = {"investor": {k: persona[k] for k in ("name", "age", "knowledge_level", "risk_tolerance", "goals", "constraints", "preferences")},
+    bundle = {"investor": {k: persona[k] for k in ("name", "age", "objective", "knowledge_level", "risk_tolerance", "goals", "constraints", "preferences")},
               "request": request, "action": action, "rule_ceiling": ev["ceiling"], "ceiling_reasons": ev["ceiling_reasons"],
               "profile": prof, "market_analysis": ana,
               "debate": {"advocate": adv, "skeptic": skp, "advocate_rebuttal": adv_r, "skeptic_rebuttal": skp_r},
               "guardian": grd, "counterfactuals": tool["counterfactuals"], "data_provenance": tool["provenance"],
-              "security": {k: tool["security"][k] for k in ("name", "annual_volatility", "max_drawdown", "worst_12m_return", "metrics_window", "note")}}
+              "macro_context": tool["macro_context"], "esg_view": ev["esg_view"],
+              "security": {k: tool["security"][k] for k in ("name", "annual_volatility", "max_drawdown", "worst_12m_return",
+                                                            "risk_units_vs_spy", "window", "note")}}
     res, jm = agents.judge(persona, action, bundle)
     final, adjusted = enforce(res.get("verdict"), ev["ceiling"])
     if adjusted:
@@ -193,8 +200,10 @@ def _guard_result(res):
         return {"status": "error", "error": str(e)[:200], "checked": 0}
     if outs and outs[0]["action"] == "NOT_CONFIGURED":
         return {"status": "not configured", "checked": 0}
-    blocked = []
+    blocked, flagged = [], []
     for (f, i, k, original), o in zip(jobs, outs):
+        if o.get("detected_only"):
+            flagged.append({"field": f, "index": i, "topics": o["detected_only"], "text": original})
         if o["action"] == "GUARDRAIL_INTERVENED":
             blocked.append({"field": f, "index": i, "topics": o.get("topics"), "words": o.get("words"),
                             "original_text": original})
@@ -204,4 +213,4 @@ def _guard_result(res):
                 res[f][i][k] = o["text"]
             else:
                 res[f][i] = o["text"]
-    return {"status": "active", "checked": len(jobs), "blocked": blocked}
+    return {"status": "active", "checked": len(jobs), "blocked": blocked, "flagged_not_blocked": flagged}

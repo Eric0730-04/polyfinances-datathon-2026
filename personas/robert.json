@@ -1,43 +1,111 @@
 {
   "id": "robert",
   "name": "Robert",
+  "official_persona": true,
   "fictional": true,
-  "age": 58,
-  "summary": "Engineer, plans to retire at 65 and live partly off portfolio income. Has invested on his own for 20 years, mostly Canadian blue chips he 'knows'.",
+  "age": 59,
+  "summary": "Healthcare professional, married, adult children, considering retirement in the next few years. Advanced investor who follows markets actively; may be tempted by a highly publicised company.",
+  "objective": "Preserve capital while maintaining some growth potential.",
   "knowledge_level": "sophisticated",
-  "risk_tolerance": "medium",
-  "risk_tolerance_note": "Held through 2008 and 2020 but says another -40% would keep him up at night.",
+  "risk_tolerance": "low_moderate",
+  "risk_tolerance_note": "Official profile: low to moderate risk. Prefers established companies he understands; values stability and quality; little interest in crypto.",
   "goals": [
-    {"id": "emergency", "label": "Emergency reserve", "type": "emergency_fund", "target_cad": 15000, "horizon_years": 0, "priority": 1},
-    {"id": "retirement", "label": "Retirement income from age 65", "type": "income", "target_cad": null, "horizon_years": 7, "priority": 2}
+    {
+      "id": "reserve",
+      "label": "Cash reserve",
+      "type": "emergency_fund",
+      "target_cad": 25000,
+      "horizon_years": 0,
+      "priority": 1
+    },
+    {
+      "id": "retirement",
+      "label": "Retirement transition (preserve capital, some growth)",
+      "type": "capital_preservation",
+      "target_cad": null,
+      "horizon_years": 3,
+      "horizon_note": "stated horizon 3-5 years; lower bound used (conservative assumption)",
+      "priority": 2
+    }
   ],
   "holdings": [
-    {"ticker": "CASH.TO", "value_cad": 20000, "goal": "emergency"},
-    {"ticker": "RY.TO", "value_cad": 60000, "goal": "retirement"},
-    {"ticker": "TD.TO", "value_cad": 45000, "goal": "retirement"},
-    {"ticker": "BNS.TO", "value_cad": 35000, "goal": "retirement"},
-    {"ticker": "ENB.TO", "value_cad": 40000, "goal": "retirement"},
-    {"ticker": "CNQ.TO", "value_cad": 30000, "goal": "retirement"},
-    {"ticker": "SU.TO", "value_cad": 20000, "goal": "retirement"},
-    {"ticker": "BCE.TO", "value_cad": 25000, "goal": "retirement"},
-    {"ticker": "XIC.TO", "value_cad": 30000, "goal": "retirement"},
-    {"ticker": "ZEQT.TO", "value_cad": 15000, "goal": "retirement"},
-    {"ticker": "XBB.TO", "value_cad": 40000, "goal": "retirement"}
+    {
+      "ticker": "CASH",
+      "value_cad": 25000,
+      "goal": "reserve"
+    },
+    {
+      "ticker": "ZST.TO",
+      "value_cad": 60000,
+      "goal": "retirement"
+    },
+    {
+      "ticker": "XBB.TO",
+      "value_cad": 150000,
+      "goal": "retirement"
+    },
+    {
+      "ticker": "AGG",
+      "value_cad": 30000,
+      "goal": "retirement"
+    },
+    {
+      "ticker": "XIU.TO",
+      "value_cad": 40000,
+      "goal": "retirement"
+    },
+    {
+      "ticker": "SPY",
+      "value_cad": 30000,
+      "goal": "retirement"
+    },
+    {
+      "ticker": "RY.TO",
+      "value_cad": 15000,
+      "goal": "retirement"
+    },
+    {
+      "ticker": "FTS.TO",
+      "value_cad": 15000,
+      "goal": "retirement"
+    },
+    {
+      "ticker": "JNJ",
+      "value_cad": 10000,
+      "goal": "retirement"
+    },
+    {
+      "ticker": "PG",
+      "value_cad": 10000,
+      "goal": "retirement"
+    }
   ],
   "constraints": {
-    "min_liquid_cad": 15000,
-    "max_single_position_pct": 15,
+    "min_liquid_cad": 25000,
+    "max_single_position_pct": 10,
     "max_sector_pct": 40,
-    "excluded_asset_classes": ["crypto"]
+    "_origin": {
+      "max_single_position_pct": "derived from 'values stability' (assumption)",
+      "max_sector_pct": "derived (assumption)",
+      "pref_max_security_risk_units": "derived from 'values stability and company quality' (assumption)"
+    },
+    "pref_max_security_risk_units": 2.0
   },
   "preferences": {
-    "likes": ["dividends", "Canadian companies he knows"],
-    "esg": "no preference",
-    "income_needed": true
+    "likes": [
+      "established companies",
+      "business models he understands",
+      "stability and quality"
+    ],
+    "dislikes": [
+      "crypto assets"
+    ],
+    "esg_important": false,
+    "income_needed": false
   },
   "sample_requests": [
-    "I want to put $15,000 into XSP to diversify outside Canada. I'll use my cash.",
-    "Would adding $15,000 of XSP, funded by trimming RY, improve my diversification?",
-    "Move $20,000 from my cash into the Purpose Bitcoin ETF, crypto is about to explode."
+    "Everyone is talking about Tesla. I want to move $60,000 from my XBB bond fund into TSLA.",
+    "NVIDIA keeps going up. Put $40,000 of new money into NVDA for my retirement.",
+    "Move $20,000 from XBB into JNJ, I like stable companies."
   ]
 }

@@ -42,8 +42,11 @@ spec = dict(
          "type": "DENY"},
         {"name": "Trade execution instructions",
          "definition": "Telling or urging the reader to execute a trade now. Excludes analysing or describing the investor's own proposed trade, and hypothetical or conditional statements.",
-         "examples": ["Buy 100 shares of XSP today.", "Sell all your RY stock right now.", "You should go ahead and place the $15,000 order."],
-         "type": "DENY"},
+         "examples": ["Buy 100 shares of SPY today.", "Sell all your RY stock right now.", "You should go ahead and place the $15,000 order."],
+         "type": "DENY",
+         # detect-only: evaluation showed this topic over-triggers on analysis of the investor's own proposed trade
+         # (12 false positives / 28 runs); detections are logged in the audit trace instead of blocking.
+         "outputAction": "NONE", "inputAction": "NONE"},
     ]},
     wordPolicyConfig={"wordsConfig": [{"text": "guaranteed return"}, {"text": "risk-free profit"}, {"text": "can't lose"}]},
     sensitiveInformationPolicyConfig={"piiEntitiesConfig": [
@@ -67,7 +70,9 @@ print("wrote aws_resources.json")
 
 sys.path.insert(0, str(ROOT))
 from src.aws import guard, upload_dir  # noqa: E402
-print(upload_dir(ROOT / "data" / "market", "market"))
-for t in ["Moving condo savings into XSP is inconsistent with a 2.5-year horizon.",
-          "Buy 200 shares of XSP today, it is guaranteed to go up."]:
+print(upload_dir(ROOT / "data" / "starter", "data/starter"))
+print(upload_dir(ROOT / "data" / "supplemental", "data/supplemental"))
+for t in ["The proposed $15,000 investment in NVIDIA breaches two hard constraints.",
+          "Buy 200 shares of SPY today.",
+          "Buy 200 shares of SPY today, it is guaranteed to go up."]:
     print(guard(t))

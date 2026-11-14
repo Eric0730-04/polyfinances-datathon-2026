@@ -11,7 +11,9 @@ from src.orchestrator import run
 from src.universe import UNIVERSE
 
 ROOT = Path(__file__).parent
-PERSONAS = {p.stem: json.loads(p.read_text()) for p in sorted((ROOT / "personas").glob("*.json"))}
+ORDER = ["robert", "amira", "mateo", "maya"]  # official personas first, then the optional near-term-purchase scenario
+PERSONAS = {p.stem: json.loads(p.read_text()) for p in sorted((ROOT / "personas").glob("*.json"),
+                                                               key=lambda f: ORDER.index(f.stem) if f.stem in ORDER else 99)}
 
 # palette (validated reference instance): before = blue 250, after = blue 450; status colours reserved for verdicts
 C_BEFORE, C_AFTER, C_LIMIT = "#86b6ef", "#2a78d6", "#52514e"
@@ -64,7 +66,7 @@ def goal_chart(before, after):
     fig.add_scatter(y=labels, x=[g["allowed_max_risky"] * 100 for g in after][::-1], mode="markers", name="Limit",
                     marker=dict(symbol="line-ns", size=26, line=dict(width=3, color=C_LIMIT)),
                     hovertemplate="%{y} limit: %{x:.0f}%<extra></extra>")
-    fig.update_layout(title=dict(text="Risky share of each goal vs. its limit (risk units, crypto = 3x)", font=dict(size=14)),
+    fig.update_layout(title=dict(text="Equity-equivalent risk of each goal vs. its limit (S&P 500 = 100%)", font=dict(size=14)),
                       barmode="group", height=110 + 60 * len(labels), margin=dict(l=10, r=10, t=40, b=10),
                       plot_bgcolor="#fcfcfb", paper_bgcolor="#fcfcfb", legend=dict(orientation="h", y=1.15, x=1, xanchor="right"),
                       xaxis=dict(ticksuffix="%", gridcolor=GRID, color=MUTED))
@@ -99,18 +101,24 @@ def verdict_card(res):
 
 
 def persona_sidebar(p):
-    st.sidebar.markdown(f"### {p['name']}, {p['age']}  \n<span class='badge'>fictional persona</span>"
+    st.sidebar.markdown(f"### {p['name']}, {p['age']}  \n<span class='badge'>{'official persona' if p.get('official_persona') else 'extra scenario'}</span>"
+                        f"<span class='badge'>fictional</span>"
                         f"<span class='badge'>{p['knowledge_level']}</span><span class='badge'>tolerance: {p['risk_tolerance']}</span>",
                         unsafe_allow_html=True)
     st.sidebar.caption(p["summary"])
+    st.sidebar.markdown(f"**Objective:** {p.get('objective', '')}")
     st.sidebar.markdown("**Goals**")
-    st.sidebar.dataframe(pd.DataFrame([{"Goal": g["label"], "Horizon (y)": g["horizon_years"]} for g in p["goals"]]),
+    st.sidebar.dataframe(pd.DataFrame([{"Goal": g["label"], "Horizon (y)": g["horizon_years"], "Note": g.get("horizon_note", "")}
+                                       for g in p["goals"]]),
                          hide_index=True, width="stretch")
     st.sidebar.markdown("**Holdings (simulated)**")
     st.sidebar.dataframe(pd.DataFrame([{"Ticker": h["ticker"], "Value $": f"{h['value_cad']:,.0f}", "Goal": h["goal"]}
                                        for h in p["holdings"]]), hide_index=True, width="stretch")
-    st.sidebar.markdown("**Hard constraints**")
-    st.sidebar.json(p.get("constraints", {}), expanded=False)
+    st.sidebar.markdown("**Constraints** (stated or derived; derived ones are assumptions)")
+    cons = {k: v for k, v in p.get("constraints", {}).items() if not k.startswith("_")}
+    org = p.get("constraints", {}).get("_origin", {})
+    st.sidebar.dataframe(pd.DataFrame([{"Constraint": k, "Value": str(v), "Origin": org.get(k, "stated")} for k, v in cons.items()]),
+                         hide_index=True, width="stretch")
     st.sidebar.markdown("**Preferences** (operate inside constraints)")
     st.sidebar.json(p.get("preferences", {}), expanded=False)
 
@@ -174,10 +182,15 @@ def render_result(trace, persona):
         st.dataframe(pd.DataFrame([{"Scenario": s["label"], "Type": s["type"], "Impact after": f"{s['impact_pct'] * 100:.1f}%",
                                     "Basis": s["basis"]} for s in tool["stress_after"]]), hide_index=True, width="stretch")
         sec = tool["security"]
-        st.markdown(f"**{sec['name']} ({sec['ticker']})**: volatility {pct(sec['annual_volatility'], 1)}/yr, "
-                    f"max drawdown {pct(sec['max_drawdown'], 1)} ({sec['max_drawdown_date']}), worst 12 months "
-                    f"{pct(sec['worst_12m_return'], 1)}, fee (MER) {sec['mer'] if sec['mer'] is not None else 'n/a'}%. "
+        st.markdown(f"**{sec['name']} ({sec['ticker']})**, {sec['window']}, CAD total return: volatility "
+                    f"{pct(sec['annual_volatility'], 1)}/yr (= {sec['risk_units_vs_spy']}× the S&P 500), max drawdown "
+                    f"{pct(sec['max_drawdown'], 1)} ({sec['max_drawdown_date']}), worst 12 months {pct(sec['worst_12m_return'], 1)}. "
                     + (sec.get("note") or ""))
+        mc = tool.get("macro_context", {})
+        if mc:
+            st.markdown(f"**Macro context as of {mc['asof']}** (only data published by then)")
+            st.dataframe(pd.DataFrame([{"Series": v["label"], "Value": v["value"], "Date": v["date"], "Note": v.get("note", "")}
+                                       for v in mc["series"].values()]), hide_index=True, width="stretch")
         with st.expander("Analyst observations"):
             for o in next(s["output"] for s in trace["steps"] if s["agent"] == "analyst").get("observations", []):
                 st.markdown(f"- {o['statement']}")
@@ -189,8 +202,16 @@ def render_result(trace, persona):
                      hide_index=True, width="stretch")
         st.markdown("#### Hard constraints (deterministic checks)")
         icon = lambda c: "✔ pass" if c["passed"] else ("✖ " if c["blocking"] else "◐ ") + c["status"]  # noqa: E731
-        st.dataframe(pd.DataFrame([{"Rule": c["rule"], "Before": c["before"], "After": c["after"], "Result": icon(c),
-                                    "Detail": c["detail"]} for c in tool["rules"]["constraints"]]), hide_index=True, width="stretch")
+        st.dataframe(pd.DataFrame([{"Rule": c["rule"], "Type": c["severity"], "Origin": c.get("origin", "stated"),
+                                    "Before": c["before"], "After": c["after"], "Result": icon(c), "Detail": c["detail"]}
+                                   for c in tool["rules"]["constraints"]]), hide_index=True, width="stretch")
+        if tool.get("esg_after"):
+            e = tool["esg_after"]
+            st.markdown("#### ESG view: what the data can and cannot say")
+            st.markdown(f"- Screen: {e['screen']}\n- Direct holdings in excluded sectors after the action: "
+                        f"{', '.join(e['direct_holdings_in_excluded_sectors']) or 'none'}\n- Energy exposure via funds and stocks: "
+                        f"{pct(tool['esg_before']['energy_lookthrough_share_of_portfolio'], 1)} → {pct(e['energy_lookthrough_share_of_portfolio'], 1)} of the portfolio")
+            st.warning("⚠️ " + e["controversy_status"])
         prof = next(s["output"] for s in trace["steps"] if s["agent"] == "profile")
         grd = next(s["output"] for s in trace["steps"] if s["agent"] == "guardian")
         st.markdown("#### Profile agent: tolerance vs. capacity")
@@ -222,9 +243,15 @@ def render_result(trace, persona):
         gr = trace.get("guardrail", {})
         m = st.columns(4)
         m[0].metric("Numbers traced to data", g.get("summary", "n/a"))
-        m[1].metric("Guardrail", f"{gr.get('status')}", f"{len(gr.get('blocked', []))} blocked of {gr.get('checked', 0)}", delta_color="off")
+        m[1].metric("Bedrock Guardrail", f"{gr.get('status')}", f"{len(gr.get('blocked', []))} blocked · "
+                    f"{len(gr.get('flagged_not_blocked', []))} flagged · {gr.get('checked', 0)} checked", delta_color="off")
         m[2].metric("Agent calls / tokens", f"{sum(1 for s in trace['steps'] if s['kind'] == 'llm')} / {trace.get('total_tokens', 0):,}")
         m[3].metric("Run time", f"{trace.get('elapsed_s')} s")
+        for b in gr.get("blocked", []):
+            st.error(f"Guardrail blocked ({', '.join(b['topics'] + b['words'])}) in `{b['field']}`: original kept for audit: "
+                     f"{b.get('original_text', '')}")
+        for b in gr.get("flagged_not_blocked", []):
+            st.info(f"Guardrail flagged, not blocked ({', '.join(b['topics'])}) in `{b['field']}`: {b['text']}")
         if g.get("ungrounded"):
             st.warning("Figures not found in the data: " + ", ".join(g["ungrounded"]))
         st.caption(f"Run `{trace['run_id']}` · model `{trace['model']}` · stored at `{trace.get('s3_uri') or 'local only'}`")
@@ -272,9 +299,10 @@ else:
     st.markdown("#### Same request, different investors")
     st.caption("The kickoff asked for at least two contrasting personas. The same idea gets a different answer when goals, "
                "horizons and constraints differ.")
-    presets = ["I want to put $15,000 of my cash into XSP.",
-               "Move $20,000 of my cash into the Purpose Bitcoin ETF, crypto is about to explode.",
-               "Add $5,000 of new money to ZQQ, tech has been doing great."]
+    presets = ["Put $2,000 of new money into Bitcoin.",
+               "Add $10,000 of new money to SPY.",
+               "AI is the future. Put $15,000 of new money into NVIDIA.",
+               "Put $10,000 of new money into Exxon (XOM) for the dividend."]
     req = st.selectbox("Request sent to every persona (or type your own below)", presets)
     req = st.text_input("Custom request (optional)", "") or req
     if st.button("Run for all personas", type="primary"):

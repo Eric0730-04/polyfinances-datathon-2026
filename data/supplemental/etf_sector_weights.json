@@ -1,0 +1,56 @@
+{
+  "source": "Yahoo Finance via yfinance funds_data.sector_weightings",
+  "fetched_at_utc": "2026-11-14T17:11:06+00:00",
+  "mapping": "Yahoo sector names mapped to GICS sector names used in assets_universe.csv",
+  "etfs": {
+    "XIU.TO": {
+      "Financials": 0.4102,
+      "Energy": 0.1801,
+      "Materials": 0.1162,
+      "Information Technology": 0.1006,
+      "Industrials": 0.0794,
+      "Consumer Discretionary": 0.0368,
+      "Consumer Staples": 0.0339,
+      "Utilities": 0.0254,
+      "Communication Services": 0.0154,
+      "Real Estate": 0.002
+    },
+    "SPY": {
+      "Information Technology": 0.3823,
+      "Financials": 0.1203,
+      "Health Care": 0.1025,
+      "Consumer Discretionary": 0.0919,
+      "Communication Services": 0.0842,
+      "Industrials": 0.0761,
+      "Consumer Staples": 0.0488,
+      "Energy": 0.0391,
+      "Utilities": 0.0209,
+      "Real Estate": 0.018,
+      "Materials": 0.0158
+    },
+    "QQQ": {
+      "Information Technology": 0.5802,
+      "Communication Services": 0.1109,
+      "Consumer Discretionary": 0.1104,
+      "Consumer Staples": 0.0679,
+      "Industrials": 0.0526,
+      "Health Care": 0.0482,
+      "Utilities": 0.0118,
+      "Materials": 0.0107,
+      "Energy": 0.0051,
+      "Financials": 0.0022
+    },
+    "ESGV": {
+      "Information Technology": 0.4438,
+      "Financials": 0.1156,
+      "Communication Services": 0.1136,
+      "Health Care": 0.1059,
+      "Consumer Discretionary": 0.1046,
+      "Industrials": 0.0392,
+      "Consumer Staples": 0.0351,
+      "Real Estate": 0.0246,
+      "Materials": 0.0163,
+      "Utilities": 0.0013
+    }
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "id": "mateo",
+  "name": "Mateo",
+  "official_persona": true,
+  "fictional": true,
+  "age": 41,
+  "summary": "Operations manager, partner and two children, intermediate investment experience. Places high importance on ESG and wants to avoid companies involved in significant environmental or social controversies.",
+  "objective": "Balanced capital growth over the medium and long term.",
+  "knowledge_level": "intermediate",
+  "risk_tolerance": "moderate",
+  "risk_tolerance_note": "Official profile: moderate risk. Open to emerging technologies when they fit his profile; little interest in highly speculative investments.",
+  "goals": [
+    {
+      "id": "emergency",
+      "label": "Emergency fund",
+      "type": "emergency_fund",
+      "target_cad": 15000,
+      "horizon_years": 0,
+      "priority": 1
+    },
+    {
+      "id": "balanced",
+      "label": "Balanced growth (family, medium-long term)",
+      "type": "growth",
+      "target_cad": null,
+      "horizon_years": 8,
+      "horizon_note": "stated horizon 8-12 years; lower bound used (conservative assumption)",
+      "priority": 2
+    }
+  ],
+  "holdings": [
+    {
+      "ticker": "CASH",
+      "value_cad": 15000,
+      "goal": "emergency"
+    },
+    {
+      "ticker": "ESGV",
+      "value_cad": 40000,
+      "goal": "balanced"
+    },
+    {
+      "ticker": "XIU.TO",
+      "value_cad": 20000,
+      "goal": "balanced"
+    },
+    {
+      "ticker": "XBB.TO",
+      "value_cad": 60000,
+      "goal": "balanced"
+    },
+    {
+      "ticker": "ZST.TO",
+      "value_cad": 5000,
+      "goal": "balanced"
+    },
+    {
+      "ticker": "FTS.TO",
+      "value_cad": 10000,
+      "goal": "balanced"
+    },
+    {
+      "ticker": "CNR.TO",
+      "value_cad": 10000,
+      "goal": "balanced"
+    },
+    {
+      "ticker": "MSFT",
+      "value_cad": 8000,
+      "goal": "balanced"
+    }
+  ],
+  "constraints": {
+    "min_liquid_cad": 15000,
+    "max_single_position_pct": 10,
+    "excluded_sectors": [
+      "Energy"
+    ],
+    "_origin": {
+      "excluded_sectors": "derived from ESG preference: fossil-fuel exclusion as a proxy (assumption)",
+      "max_single_position_pct": "derived (assumption)",
+      "pref_max_security_risk_units": "derived from 'little interest in highly speculative investments' (assumption)"
+    },
+    "pref_max_security_risk_units": 3.0
+  },
+  "preferences": {
+    "likes": [
+      "ESG",
+      "balance between growth and stability",
+      "emerging tech if it fits his risk profile"
+    ],
+    "dislikes": [
+      "highly speculative investments",
+      "companies with significant environmental or social controversies"
+    ],
+    "esg_important": true,
+    "income_needed": false
+  },
+  "sample_requests": [
+    "Exxon pays a great dividend. Put $10,000 of new money into XOM.",
+    "Switch $20,000 from ESGV to SPY to save on fees.",
+    "Add $10,000 of new money to ESGV."
+  ]
+}

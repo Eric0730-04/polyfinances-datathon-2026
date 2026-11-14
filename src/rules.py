@@ -52,8 +52,12 @@ def evaluate(persona, holdings, action):
                                               f"{a['allowed_max_risky']:.0%}) but the pre-existing gap remains")
     for c in checks:
         if not c["passed"] and not c["blocking"]:
-            cap("CONSISTENT_WITH_CONDITIONS", f"Pre-existing breach not created by this action: {c['rule']} "
-                                              f"({c['status']}: {c['before']} -> {c['after']})")
+            if c["severity"] == "soft" and c["status"].startswith("worsened"):
+                cap("CONSISTENT_WITH_CONDITIONS", f"Soft check (preference) worsened: {c['rule']} "
+                                                  f"({c['before']} -> {c['after']})")
+            else:
+                cap("CONSISTENT_WITH_CONDITIONS", f"Pre-existing breach not created by this action: {c['rule']} "
+                                                  f"({c['status']}: {c['before']} -> {c['after']})")
     return {"after": after, "warnings": warnings, "constraints": checks, "ceiling": ceiling,
             "ceiling_reasons": reasons, "buckets_before": list(gb.values()), "buckets_after": list(ga.values())}
 
@@ -75,13 +79,13 @@ def counterfactuals(persona, holdings, action):
 
     # 2. swap: fund by trimming the largest single-stock position in the destination goal
     goal = action.get("goal_id")
-    stocks = [h for h in holdings if h.get("goal") == goal and UNIVERSE[h["ticker"]].get("mer") is None
+    stocks = [h for h in holdings if h.get("goal") == goal and not UNIVERSE[h["ticker"]]["diversified"]
               and h["ticker"] != action["ticker"]]
     if stocks:
         top = max(stocks, key=lambda h: h["value_cad"])
         amt = min(float(action["amount_cad"]), top["value_cad"])
         a = {**action, "amount_cad": amt, "funding": top["ticker"], "funding_goal_id": goal}
-        out.append(summarize(f"Swap: fund by trimming {top['ticker']} (largest single stock in this goal)", a,
+        out.append(summarize(f"Swap: fund by trimming {top['ticker']} (largest single-security position in this goal)", a,
                              evaluate(persona, holdings, a)))
 
     # 3. largest amount (same funding) that keeps the rule ceiling at least as good as CONSISTENT_WITH_CONDITIONS

@@ -30,7 +30,7 @@ def _call(role_prompt, payload, schema, temperature=0.2, max_tokens=2048):
 def intake(request_text, persona, universe_brief):
     role = ("ROLE: Intake agent. Translate the investor's free-text request into one structured action. "
             "Pick the ticker only from the universe list. goal_id = the goal the new position will serve; "
-            "funding = 'new_money' or the ticker sold to pay for it (e.g. 'CASH.TO' when they say 'my cash/savings'); "
+            "funding = 'new_money' or the ticker sold to pay for it (e.g. 'CASH' when they say 'my cash', 'ZST.TO' or 'XBB.TO' when they name those funds); "
             "funding_goal_id = the goal whose money is used (e.g. 'condo' if they say 'my condo savings'). "
             "If they pay with cash and do not name a goal for the cash, use the goal that holds that cash. "
             "If the security is not in the universe or the amount is missing, set in_scope=false and explain in ambiguities.")
@@ -49,11 +49,13 @@ def profile(persona, rule_eval, action):
     role = ("ROLE: Profile agent. Compare the investor's risk TOLERANCE (what they say) with their risk CAPACITY "
             "(what each goal's horizon and liquidity allow), before and after the proposed action. Focus on the goal(s) "
             "touched by the action. Point out any gap between tolerance and capacity in plain language.")
-    payload = {"investor": {k: persona[k] for k in ("name", "age", "knowledge_level", "risk_tolerance", "risk_tolerance_note", "goals")},
+    payload = {"investor": {k: persona[k] for k in ("name", "age", "objective", "knowledge_level", "risk_tolerance", "risk_tolerance_note", "goals", "constraints")},
                "action": action, "goal_buckets_before": rule_eval["buckets_before"],
                "goal_buckets_after": rule_eval["buckets_after"],
-               "rule": "max risky share by horizon: <1y 0%, 1-3y 20%, 3-5y 40%, 5-10y 70%, 10y+ 125%; tolerance caps low 40%, medium 70%, high 125%; "
-                       "risky share counts each crypto dollar as 3 risk units (volatility about 3x equities), so it can exceed 100%"}
+               "rule": "risky_share = equity-equivalent risk of the goal's money, where each dollar counts as (asset volatility / "
+                       "S&P 500 volatility) measured on the starter data; SPY = 100%. Limits by horizon: <1y 5%, 1-3y 20%, "
+                       "3-5y 65%, 5-10y 85%, 10y+ 150%; tolerance caps low 55%, low_moderate 65%, moderate 85%, high 150%. "
+                       "The binding limit is the lower of capacity (horizon) and tolerance."}
     schema = ('{"tolerance_vs_capacity": str, "findings": [{"goal_id": str, "finding": str, "severity": "info"|"warning"|"critical"}], '
               '"question_for_investor": str}')
     return _call(role, payload, schema)
@@ -61,14 +63,18 @@ def profile(persona, rule_eval, action):
 
 # ------------------------------------------------------------------ market analyst
 
-def analyst(action, sec_metrics, exp_before, exp_after, risk_before, risk_after, stress_before, stress_after, provenance):
+def analyst(action, sec_metrics, exp_before, exp_after, risk_before, risk_after, stress_before, stress_after, provenance,
+            macro=None, esg=None):
     role = ("ROLE: Market analyst agent. Describe what the action changes in the portfolio using only the numbers given: "
             "security risk profile, asset class, equity geography, sector concentration, currency exposure, historical "
             "portfolio volatility/drawdown and stress tests before vs after. Say whether diversification improves. "
-            "Remember diversification means varied exposures (geography, sector, currency, asset class), not more line items.")
+            "Remember diversification means varied exposures (geography, sector, currency, asset class), not more line items. "
+            "Use macro_context only as background (e.g. real cash yield), citing its dates. If esg_view is present, state "
+            "what the data can and cannot establish about ESG (controversy status is not verified).")
     payload = {"action": action, "security": sec_metrics, "exposures_before": exp_before, "exposures_after": exp_after,
                "portfolio_risk_before": risk_before, "portfolio_risk_after": risk_after,
-               "stress_before": stress_before, "stress_after": stress_after, "data_provenance": provenance}
+               "stress_before": stress_before, "stress_after": stress_after, "data_provenance": provenance,
+               "macro_context": macro, "esg_view": esg}
     schema = ('{"observations": [{"statement": str, "numbers_used": [str]}], '
               '"diversification_effect": "improves"|"neutral"|"worsens"|"mixed", "diversification_explanation": str, '
               '"data_caveats": [str]}')
@@ -99,7 +105,7 @@ def guardian(persona, rule_eval, action):
             "goal capacity (preferences never override constraints). Flag whether the request itself could amount to "
             "speculation with money that has a short horizon.")
     payload = {"constraints_declared": persona.get("constraints"), "preferences": persona.get("preferences"),
-               "constraint_checks": rule_eval["constraints"], "rule_ceiling": rule_eval["ceiling"],
+               "constraint_checks": rule_eval["constraints"], "rule_ceiling": rule_eval["ceiling"], "esg_view": rule_eval.get("esg_view"),
                "ceiling_reasons": rule_eval["ceiling_reasons"], "action": action, "warnings": rule_eval["warnings"]}
     schema = ('{"hard_constraint_summary": str, "preference_conflicts": [str], "governance_flags": [str]}')
     return _call(role, payload, schema)
