@@ -1,0 +1,43 @@
+{
+  "id": "robert",
+  "name": "Robert",
+  "fictional": true,
+  "age": 58,
+  "summary": "Engineer, plans to retire at 65 and live partly off portfolio income. Has invested on his own for 20 years, mostly Canadian blue chips he 'knows'.",
+  "knowledge_level": "sophisticated",
+  "risk_tolerance": "medium",
+  "risk_tolerance_note": "Held through 2008 and 2020 but says another -40% would keep him up at night.",
+  "goals": [
+    {"id": "emergency", "label": "Emergency reserve", "type": "emergency_fund", "target_cad": 15000, "horizon_years": 0, "priority": 1},
+    {"id": "retirement", "label": "Retirement income from age 65", "type": "income", "target_cad": null, "horizon_years": 7, "priority": 2}
+  ],
+  "holdings": [
+    {"ticker": "CASH.TO", "value_cad": 20000, "goal": "emergency"},
+    {"ticker": "RY.TO", "value_cad": 60000, "goal": "retirement"},
+    {"ticker": "TD.TO", "value_cad": 45000, "goal": "retirement"},
+    {"ticker": "BNS.TO", "value_cad": 35000, "goal": "retirement"},
+    {"ticker": "ENB.TO", "value_cad": 40000, "goal": "retirement"},
+    {"ticker": "CNQ.TO", "value_cad": 30000, "goal": "retirement"},
+    {"ticker": "SU.TO", "value_cad": 20000, "goal": "retirement"},
+    {"ticker": "BCE.TO", "value_cad": 25000, "goal": "retirement"},
+    {"ticker": "XIC.TO", "value_cad": 30000, "goal": "retirement"},
+    {"ticker": "ZEQT.TO", "value_cad": 15000, "goal": "retirement"},
+    {"ticker": "XBB.TO", "value_cad": 40000, "goal": "retirement"}
+  ],
+  "constraints": {
+    "min_liquid_cad": 15000,
+    "max_single_position_pct": 15,
+    "max_sector_pct": 40,
+    "excluded_asset_classes": ["crypto"]
+  },
+  "preferences": {
+    "likes": ["dividends", "Canadian companies he knows"],
+    "esg": "no preference",
+    "income_needed": true
+  },
+  "sample_requests": [
+    "I want to put $15,000 into XSP to diversify outside Canada. I'll use my cash.",
+    "Would adding $15,000 of XSP, funded by trimming RY, improve my diversification?",
+    "Move $20,000 from my cash into the Purpose Bitcoin ETF, crypto is about to explode."
+  ]
+}

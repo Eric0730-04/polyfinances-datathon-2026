@@ -6,8 +6,10 @@ standard AWS_* environment variables. Never commit credentials.
 import json
 import os
 import re
+import time
 
 import boto3
+from botocore.config import Config
 
 REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 DEFAULT_MODEL = os.getenv("BEDROCK_MODEL_ID", "global.amazon.nova-2-lite-v1:0")
@@ -18,12 +20,13 @@ _client = None
 def client():
     global _client
     if _client is None:
-        _client = boto3.Session(region_name=REGION).client("bedrock-runtime")
+        _client = boto3.Session(region_name=REGION).client(
+            "bedrock-runtime", config=Config(retries={"max_attempts": 6, "mode": "adaptive"}, read_timeout=120))
     return _client
 
 
-def chat(prompt, system=None, model_id=DEFAULT_MODEL, max_tokens=1024, temperature=0.2):
-    """Send a single-turn prompt; return (text, usage)."""
+def chat(prompt, system=None, model_id=DEFAULT_MODEL, max_tokens=2048, temperature=0.2):
+    """Single-turn prompt. Returns (text, meta) where meta has usage, latency_ms and model."""
     kwargs = {
         "modelId": model_id,
         "messages": [{"role": "user", "content": [{"text": prompt}]}],
@@ -31,14 +34,29 @@ def chat(prompt, system=None, model_id=DEFAULT_MODEL, max_tokens=1024, temperatu
     }
     if system:
         kwargs["system"] = [{"text": system}]
+    t0 = time.time()
     resp = client().converse(**kwargs)
-    return resp["output"]["message"]["content"][0]["text"], resp["usage"]
+    text = "".join(c.get("text", "") for c in resp["output"]["message"]["content"])
+    return text, {"usage": resp["usage"], "latency_ms": int((time.time() - t0) * 1000), "model": model_id}
 
 
-def chat_json(prompt, system=None, **kw):
-    """Ask for JSON and parse the first JSON object/array in the reply."""
-    text, usage = chat(prompt, system=system, **kw)
-    m = re.search(r"(\{.*\}|\[.*\])", text, re.S)
-    if not m:
+def _extract_json(text):
+    text = re.sub(r"```(?:json)?", "", text)
+    start = min([i for i in (text.find("{"), text.find("[")) if i >= 0], default=-1)
+    if start < 0:
         raise ValueError(f"No JSON in model reply: {text[:200]}")
-    return json.loads(m.group(1)), usage
+    obj, _ = json.JSONDecoder().raw_decode(text[start:])
+    return obj
+
+
+def chat_json(prompt, system=None, retries=2, **kw):
+    """Ask for JSON; parse it, retrying with a reminder if the reply is malformed."""
+    last_err = None
+    for attempt in range(retries + 1):
+        p = prompt if attempt == 0 else prompt + "\n\nYour previous reply was not valid JSON. Reply with ONLY the JSON object."
+        text, meta = chat(p, system=system, **kw)
+        try:
+            return _extract_json(text), meta
+        except (ValueError, json.JSONDecodeError) as e:
+            last_err = e
+    raise ValueError(f"Model did not return valid JSON after {retries + 1} tries: {last_err}")

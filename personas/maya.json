@@ -1,0 +1,35 @@
+{
+  "id": "maya",
+  "name": "Maya",
+  "fictional": true,
+  "age": 27,
+  "summary": "Junior UX designer in Montreal, first real savings. Self-directed investor for about 1 year, learning fast, follows finance TikTok.",
+  "knowledge_level": "novice",
+  "risk_tolerance": "high",
+  "risk_tolerance_note": "Says market drops 'don't stress her'. Has never lived through a bear market with real money.",
+  "goals": [
+    {"id": "emergency", "label": "Emergency fund (3 months of expenses)", "type": "emergency_fund", "target_cad": 9000, "horizon_years": 0, "priority": 1},
+    {"id": "condo", "label": "Condo down payment", "type": "project", "target_cad": 60000, "horizon_years": 2.5, "priority": 2},
+    {"id": "retirement", "label": "Retirement", "type": "retirement", "target_cad": null, "horizon_years": 38, "priority": 3}
+  ],
+  "holdings": [
+    {"ticker": "CASH.TO", "value_cad": 9000, "goal": "emergency"},
+    {"ticker": "CASH.TO", "value_cad": 28000, "goal": "condo"},
+    {"ticker": "XBB.TO", "value_cad": 10000, "goal": "condo"},
+    {"ticker": "XEQT.TO", "value_cad": 11000, "goal": "retirement"}
+  ],
+  "constraints": {
+    "min_liquid_cad": 9000,
+    "max_single_position_pct": 10
+  },
+  "preferences": {
+    "likes": ["technology", "crypto", "growth"],
+    "esg": "interested, not strict",
+    "income_needed": false
+  },
+  "sample_requests": [
+    "I want to put $15,000 of my condo savings into XSP, the S&P 500 always goes up.",
+    "Move $20,000 from my condo fund into the Purpose Bitcoin ETF, crypto is about to explode.",
+    "Add $3,000 of new money to XEQT for retirement."
+  ]
+}
