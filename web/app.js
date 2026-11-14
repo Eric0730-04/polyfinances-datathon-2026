@@ -418,6 +418,7 @@ function openTab(it, tab) {
   $$(".tabs button", root).forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
   const body = document.getElementById(`tb-${it.id}`), t = it.trace;
   body.innerHTML = ({ overview: tabOverview, whatif: tabWhatif, rules: tabRules, xray: tabXray, stress: tabStress, asset: tabAsset, debate: tabDebate, evidence: tabEvidence })[tab](t, it);
+  if (tab === "overview") body.querySelector("[data-more]")?.addEventListener("toggle", (e) => { it.whyOpen = e.target.open; });
   if (tab === "xray") bindXray(t, it);
   if (tab === "whatif") bindWhatif(t, it);
   if (tab === "stress") stressChart(t, it);
@@ -445,21 +446,27 @@ function robustNote(t, changed) {
   return `<p class="robust"><b>The verdict holds.</b> We also tested ${same.length} other version${same.length > 1 ? "s" : ""} of this idea
     (${esc(kinds.join(", "))}); ${same.length > 1 ? "none of them changes" : "it doesn't change"} the answer (${esc(vinfo(t.toolbox.rules.ceiling).short.toLowerCase())}).</p>`;
 }
-function tabOverview(t) {
+function tabOverview(t, it) {
   const r = t.result;
   const changed = (t.toolbox.counterfactuals || []).filter((c) => c.changes_result ?? c.ceiling !== t.toolbox.rules.ceiling);
   const better = changed.filter((c) => (c.direction || "better") === "better");
   const ol = (xs) => `<ol class="plain">${(xs || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ol>`;
-  return `<div class="ov">
-      <div><h4 class="h">Why</h4>${ol(r.key_reasons)}</div>
-      <div><h4 class="h">What would change this answer</h4>${ol(r.no_longer_valid_if)}</div>
-    </div>
-    ${changed.length ? `<h4 class="h" style="margin-top:22px">${better.length ? "Versions of this idea that would change the verdict" : "Versions that would make it worse"}
+  const nWhy = (r.key_reasons || []).length, nChange = (r.no_longer_valid_if || []).length;
+  return `${changed.length ? `<h4 class="h">${better.length ? "Versions of this idea that would change the verdict" : "Versions that would make it worse"}
       <span class="muted small" style="font-weight:400"> · recomputed with the same rules · information, not advice</span></h4>
     <div class="table-wrap"><table class="data vtable"><thead><tr><th style="width:34%">Version</th><th>Verdict</th><th>What changes</th></tr></thead>
       <tbody>${changed.map(variantRow).join("")}</tbody></table></div>` : ""}
     ${robustNote(t, changed)}
-    ${r.debate_takeaway ? `<p class="takeaway"><b>Judge's takeaway.</b> ${esc(r.debate_takeaway)}</p>` : ""}`;
+    ${r.debate_takeaway ? `<p class="takeaway"><b>Judge's takeaway.</b> ${esc(r.debate_takeaway)}</p>` : ""}
+    <details class="more" data-more ${it?.whyOpen ? "open" : ""}>
+      <summary><span class="more-label">Why this verdict, and what would change it</span>
+        <span class="more-count">${nWhy} reason${nWhy === 1 ? "" : "s"} · ${nChange} condition${nChange === 1 ? "" : "s"}</span>
+        <svg class="more-chev" width="16" height="16" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>
+      <div class="ov">
+        <div><h4 class="h">Why</h4>${ol(r.key_reasons)}</div>
+        <div><h4 class="h">What would change this answer</h4>${ol(r.no_longer_valid_if)}</div>
+      </div>
+    </details>`;
 }
 
 // ------------------------------------------------------------------ follow-up chat (grounded in this analysis)
