@@ -194,9 +194,10 @@ def _guard_result(res):
     if outs and outs[0]["action"] == "NOT_CONFIGURED":
         return {"status": "not configured", "checked": 0}
     blocked = []
-    for (f, i, k, _), o in zip(jobs, outs):
+    for (f, i, k, original), o in zip(jobs, outs):
         if o["action"] == "GUARDRAIL_INTERVENED":
-            blocked.append({"field": f, "index": i, "topics": o.get("topics"), "words": o.get("words")})
+            blocked.append({"field": f, "index": i, "topics": o.get("topics"), "words": o.get("words"),
+                            "original_text": original})
             if i is None:
                 res[f] = o["text"]
             elif k:

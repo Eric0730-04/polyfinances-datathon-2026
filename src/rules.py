@@ -1,5 +1,10 @@
 """Deterministic governance rules: verdict ceilings and counterfactual what-ifs.
 
+Verdict logic (same for hard constraints and goal risk limits):
+- creates or worsens a breach                    -> INCONSISTENT
+- leaves a pre-existing breach in place/reduced  -> CONSISTENT_WITH_CONDITIONS
+- no breach before or after                      -> CONSISTENT
+
 The LLM judge may choose a verdict that is equal to or more cautious than the rule ceiling,
 never more permissive. Counterfactuals are computed, not generated, so "what would change
 the answer" is backed by numbers.
@@ -39,8 +44,16 @@ def evaluate(persona, holdings, action):
                                 f"risky-asset limit: {b_share:.0%} -> {a['risky_share']:.0%} (limit {a['allowed_max_risky']:.0%}, "
                                 f"bound by {a['binding_limit']})")
         elif a["status"] == "over limit" and a["risky_share"] > b_share + 1e-6:
-            cap("CONSISTENT_WITH_CONDITIONS", f"Goal '{a['label']}' was already over its risky-asset limit and this "
-                                              f"increases it: {b_share:.0%} -> {a['risky_share']:.0%} (limit {a['allowed_max_risky']:.0%})")
+            cap("INCONSISTENT", f"Goal '{a['label']}' was already over its risky-asset limit and this action increases "
+                                f"it further: {b_share:.0%} -> {a['risky_share']:.0%} (limit {a['allowed_max_risky']:.0%})")
+        elif a["status"] == "over limit":
+            cap("CONSISTENT_WITH_CONDITIONS", f"Goal '{a['label']}' is already over its risky-asset limit; this action does "
+                                              f"not increase it ({b_share:.0%} -> {a['risky_share']:.0%}, limit "
+                                              f"{a['allowed_max_risky']:.0%}) but the pre-existing gap remains")
+    for c in checks:
+        if not c["passed"] and not c["blocking"]:
+            cap("CONSISTENT_WITH_CONDITIONS", f"Pre-existing breach not created by this action: {c['rule']} "
+                                              f"({c['status']}: {c['before']} -> {c['after']})")
     return {"after": after, "warnings": warnings, "constraints": checks, "ceiling": ceiling,
             "ceiling_reasons": reasons, "buckets_before": list(gb.values()), "buckets_after": list(ga.values())}
 

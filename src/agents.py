@@ -118,7 +118,16 @@ def judge(persona, action, bundle):
             "allowed by deterministic rules: you may be equally or more cautious, never more permissive. "
             "Explain clearly, separate facts (from market data), assumptions (our rules and approximations) and fictional "
             "elements (the persona). State the conditions under which your conclusion would no longer hold. "
-            "Describe counterfactual variants as information, not as a recommendation to act. " + style)
+            "Describe counterfactual variants as information, not as a recommendation to act. "
+            "VERDICT DEFINITIONS: CONSISTENT = no hard constraint or goal limit is breached before or after; "
+            "CONSISTENT_WITH_CONDITIONS = the action creates no new breach but a pre-existing gap remains or a specific "
+            "condition must hold; INCONSISTENT = the action creates or worsens a breach of a hard constraint or goal limit; "
+            "INSUFFICIENT_DATA = key information is missing. Use the rule_ceiling as your default verdict. Choose a more "
+            "cautious verdict ONLY for a specific, material issue the rules do not cover, and state it in key_reasons "
+            "starting with 'Beyond the rules:'. Pre-existing issues the action does not worsen are conditions, not grounds "
+            "for INCONSISTENT. NEVER tell the investor to proceed, go ahead, buy, sell or act: describe consistency with "
+            "their own goals; the decision remains theirs. Every number or threshold you write, including in "
+            "no_longer_valid_if, must appear in the data. " + style)
     schema = ('{"verdict": "CONSISTENT"|"CONSISTENT_WITH_CONDITIONS"|"INCONSISTENT"|"INSUFFICIENT_DATA", '
               '"confidence": "low"|"medium"|"high", "headline": str (max 20 words), '
               '"plain_summary": str (3-5 sentences, adapted to the reader), '
