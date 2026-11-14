@@ -13,7 +13,12 @@ from src.orchestrator import run  # noqa: E402
 
 pid, req = sys.argv[1], sys.argv[2]
 persona = json.loads((ROOT / "personas" / f"{pid}.json").read_text())
-trace = run(persona, req, on_step=lambda s: print("…", s, flush=True))
+try:
+    trace = run(persona, req, on_step=lambda s: print("…", s, flush=True))
+except Exception as e:
+    from src.errors import friendly
+    f = friendly(e)
+    sys.exit(f"\n{f['title']}. {f['message']}\nWhat to do: {f['action']}\n(technical: {f['technical']})")
 out = ROOT / "runs"
 out.mkdir(exist_ok=True)
 (out / f"{trace['run_id']}.json").write_text(json.dumps(trace, indent=2, default=str))

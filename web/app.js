@@ -35,7 +35,14 @@ const state = { personas: [], pid: null, meta: null, results: {}, followup: {} }
 
 // ------------------------------------------------------------------ boot
 async function boot() {
-  const [personas, meta] = await Promise.all([fetch("/api/personas").then((r) => r.json()), fetch("/api/meta").then((r) => r.json())]);
+  let personas, meta;
+  try {
+    [personas, meta] = await Promise.all([fetch("/api/personas").then((r) => r.json()), fetch("/api/meta").then((r) => r.json())]);
+  } catch (e) {
+    $("#emptyState").classList.add("hidden");
+    showError("#result", { ...SERVER_DOWN, technical: String(e) }, () => location.reload());
+    return;
+  }
   state.personas = personas;
   state.meta = meta;
   document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => showView(t.dataset.view)));
@@ -55,7 +62,7 @@ async function boot() {
     state.results[t.persona_id] = t;
     $("#request").value = t.request;
     $("#emptyState").classList.add("hidden");
-    renderPipeline(STEPS.length, true, t.elapsed_s);
+    finishPipeline(t);
     renderResult(t);
   }
 }
@@ -135,9 +142,23 @@ function renderProfile() {
 }
 
 // ------------------------------------------------------------------ SSE helper
+class UserError extends Error {
+  constructor(f) { super(f.title); this.f = f; }
+}
+const SERVER_DOWN = { title: "Can't reach the SecondLook server", message: "The page couldn't connect to the analysis server.",
+  action: "Make sure it is running (uvicorn server:app --port 8000), then try again.", retry: true, kind: "network" };
+
 async function sse(url, body, on) {
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  if (!res.ok) throw new Error(await res.text());
+  let res;
+  try {
+    res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  } catch (e) { throw new UserError({ ...SERVER_DOWN, technical: String(e) }); }
+  if (!res.ok) {
+    let detail = "";
+    try { detail = (await res.json()).detail; } catch { detail = ""; }
+    throw new UserError({ title: typeof detail === "string" && detail ? detail : "The request couldn't be processed",
+      message: "", action: "", retry: false, technical: `HTTP ${res.status}`, kind: "request" });
+  }
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = "";
@@ -156,19 +177,25 @@ async function sse(url, body, on) {
 }
 
 // ------------------------------------------------------------------ analyze
-function renderPipeline(activeIdx, done = false, elapsed = null) {
+function renderPipeline(activeIdx, done = false, elapsed = null, stoppedAfter = null) {
   const el = $("#pipeline");
   el.classList.remove("hidden");
   el.innerHTML = STEPS.map(([, name], i) => {
+    if (stoppedAfter != null && i > stoppedAfter) return `<div class="pstep"><b>${name}</b>not needed</div>`;
     const cls = done || i < activeIdx ? "done" : i === activeIdx ? "active" : "";
     return `<div class="pstep ${cls}"><b>${name}</b>${cls === "done" ? "done" : cls === "active" ? "running…" : "waiting"}</div>`;
   }).join("") + (elapsed ? `<div class="pstep done"><b>${elapsed}s</b>total</div>` : "");
 }
+const finishPipeline = (t) => renderPipeline(STEPS.length, true, t.elapsed_s, t.toolbox ? null : 0);
 
 async function analyze(requestOverride) {
   const p = persona();
   const req = (requestOverride ?? $("#request").value).trim();
-  if (!req) return;
+  if (!req) {
+    $("#request").focus();
+    $("#result").innerHTML = `<div class="alert alert-info">Type an idea in plain language, or pick one of the suggestions above.</div>`;
+    return;
+  }
   $("#request").value = req;
   $("#runBtn").disabled = true;
   $("#emptyState").classList.add("hidden");
@@ -181,17 +208,34 @@ async function analyze(requestOverride) {
         if (i >= 0) renderPipeline(i);
       } else if (ev === "result") {
         state.results[p.id] = data;
-        renderPipeline(STEPS.length, true, data.elapsed_s);
+        finishPipeline(data);
         renderResult(data);
       } else if (ev === "error") {
-        $("#result").innerHTML = `<div class="alert alert-err">The analysis failed: ${esc(data.message)}. If AWS credentials expired, refresh them from the workshop page.</div>`;
+        $("#pipeline").classList.add("hidden");
+        showError("#result", data, () => analyze(req));
       }
     });
   } catch (e) {
-    $("#result").innerHTML = `<div class="alert alert-err">${esc(e.message)}</div>`;
+    $("#pipeline").classList.add("hidden");
+    showError("#result", e.f || { title: "Something went wrong", message: "", action: "Try again.", retry: true, technical: String(e) }, () => analyze(req));
   } finally {
     $("#runBtn").disabled = false;
   }
+}
+
+// ------------------------------------------------------------------ errors
+function errorCard(f) {
+  return `<div class="card errcard">
+    <div class="err-title">${esc(f.title)}</div>
+    ${f.message ? `<p>${esc(f.message)}</p>` : ""}
+    ${f.action ? `<p class="err-action"><b>What to do:</b> ${esc(f.action)}</p>` : ""}
+    <div class="err-row">${f.retry ? `<button class="btn-primary" data-retry>Try again</button>` : ""}
+    ${f.technical ? `<details class="raw"><summary>Technical details</summary><pre class="json">${esc(f.technical)}</pre></details>` : ""}</div></div>`;
+}
+function showError(sel, f, retry) {
+  $(sel).innerHTML = errorCard(f);
+  const b = $(`${sel} [data-retry]`);
+  if (b && retry) b.addEventListener("click", retry);
 }
 
 // ------------------------------------------------------------------ result rendering
@@ -210,13 +254,14 @@ function renderResult(trace) {
   let html = `
   <div class="verdict v-${v.cls}">
     <div class="verdict-top"><div>
-      <div class="verdict-label">${v.label}${r.confidence ? ` · ${esc(r.confidence)} confidence` : ""}</div>
+      <div class="verdict-label">${v.label}${r.confidence && r.confidence !== "n/a" ? ` · ${esc(r.confidence)} confidence` : ""}</div>
       <h2>${esc(r.headline)}</h2>
       <p>${esc(r.plain_summary)}</p>
     </div></div>
     ${r.verdict_adjustment ? `<p class="override">Rule override: ${esc(r.verdict_adjustment)}</p>` : ""}
     <div class="verdict-meta">
-      ${a.ticker ? `<span>Interpreted as <b>${esc(a.action)} ${money(+a.amount_cad)} of ${esc(a.ticker)}</b>, funded by <b>${esc(a.funding === "new_money" ? "new money" : a.funding)}</b>, for goal <b>${esc(a.goal_id)}</b></span>` : ""}
+      ${!tool && r.understood ? `<span>Understood so far: <b>${esc(r.understood)}</b></span>` : ""}
+      ${tool && a.ticker ? `<span>Interpreted as <b>${esc(a.action)} ${money(+a.amount_cad)} of ${esc(a.ticker)}</b>, funded by <b>${esc(a.funding === "new_money" ? "new money" : a.funding)}</b>, for goal <b>${esc(a.goal_id)}</b></span>` : ""}
       ${g.summary ? `<span>Numbers checked: <b>${esc(g.summary)}</b></span>` : ""}
       <span>Run <b>${esc(trace.run_id)}</b> · ${trace.elapsed_s}s</span>
     </div>
@@ -432,21 +477,29 @@ function auditBlock(trace) {
 // ------------------------------------------------------------------ follow-up (missing information)
 function followupBox(trace) {
   const r = trace.result;
-  const amb = (trace.steps.find((s) => s.agent === "intake") || {}).output?.ambiguities || [];
-  return `<div class="card" style="margin-top:14px"><span class="eyebrow">Follow-up question</span>
-    <p style="margin:0 0 8px">${esc(r.followup_question || "Could you add the missing details (which security, how much, and where the money comes from)?")}</p>
-    ${amb.length ? `<ul class="list">${amb.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-    <div class="composer-row"><textarea id="followupAnswer" rows="1" placeholder="Your answer, e.g. $10,000 of new money"></textarea>
+  const replace = (r.issues || []).some((i) => i === "override_attempt" || i === "unclear");
+  const groups = r.universe_groups
+    ? `<div class="universe">${Object.entries(r.universe_groups).map(([g, ts]) => `<div class="ugroup"><span class="eyebrow">${esc(g)}</span>
+        <div class="chips">${ts.map((t) => `<button class="chip" data-pick="${esc(t)}" title="${esc(state.meta.universe[t]?.name || "")}">${esc(t)}</button>`).join("")}</div></div>`).join("")}</div>`
+    : "";
+  return `<div class="card followup" style="margin-top:14px"><span class="eyebrow">${esc(r.followup_question || "What would you like to check?")}</span>
+    ${(r.quick_answers || []).length ? `<div class="chips" style="margin-bottom:10px">${r.quick_answers.map((q) => `<button class="chip" data-answer="${esc(q)}">${esc(q)}</button>`).join("")}</div>` : ""}
+    ${groups}
+    <div class="composer-row"><textarea id="followupAnswer" rows="1" placeholder="${replace ? "Type the idea again, e.g. Move $10,000 from XBB into SPY" : "Or type your answer, e.g. $10,000 of new money"}"></textarea>
     <button class="btn-primary" id="followupBtn">Continue</button></div></div>`;
 }
 function bindFollowup() {
-  const btn = $("#followupBtn");
-  if (!btn) return;
-  btn.addEventListener("click", () => {
-    const ans = $("#followupAnswer").value.trim();
-    if (!ans) return;
-    analyze(`${$("#request").value.trim()} (Clarification: ${ans})`);
-  });
+  const r = (state.results[state.pid] || {}).result || {};
+  const replace = (r.issues || []).some((i) => i === "override_attempt" || i === "unclear");
+  const go = (ans) => {
+    ans = ans.trim();
+    if (!ans) { $("#followupAnswer").focus(); return; }
+    analyze(replace ? ans : `${$("#request").value.trim().replace(/\s*\(Clarification:.*\)$/, "")} (Clarification: ${ans})`);
+  };
+  $("#followupBtn")?.addEventListener("click", () => go($("#followupAnswer").value));
+  $("#followupAnswer")?.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); go($("#followupAnswer").value); } });
+  document.querySelectorAll("[data-answer]").forEach((b) => b.addEventListener("click", () => go(b.dataset.answer)));
+  document.querySelectorAll("[data-pick]").forEach((b) => b.addEventListener("click", () => go(`I meant ${b.dataset.pick}`)));
 }
 
 // ------------------------------------------------------------------ compare
@@ -467,7 +520,10 @@ async function compare() {
     await sse("/api/compare", { request: req }, (ev, data) => {
       const p = state.personas.find((x) => x.id === data.persona_id);
       const el = $(`#cc-${data.persona_id}`);
-      if (ev === "error") { el.querySelector(".skeleton").textContent = `Failed: ${data.message}`; return; }
+      if (ev === "error") {
+        el.querySelector(".skeleton").innerHTML = `<b>${esc(data.title)}</b><br>${esc(data.action || data.message || "")}`;
+        return;
+      }
       const t = data.trace, r = t.result, v = vinfo(r.verdict);
       state.results[p.id] = t;
       el.style.setProperty("--v", `var(--${v.cls})`);

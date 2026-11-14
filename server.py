@@ -17,6 +17,7 @@ from src import aws
 from src.analytics import exposures, goal_buckets, macro_context, portfolio_risk, provenance, risk_units
 from src.analytics import CAPACITY_RULES, TOLERANCE_CAP
 from src.bedrock import DEFAULT_MODEL
+from src.errors import friendly
 from src.orchestrator import run
 from src.universe import UNIVERSE
 
@@ -63,11 +64,11 @@ def personas():
 def trace(run_id: str):
     """Re-open a past analysis from its S3 audit record (falls back to the local runs/ folder)."""
     if not run_id.isalnum():
-        raise HTTPException(400, "bad run id")
+        raise HTTPException(400, "That run ID isn't valid.")
     local = ROOT / "runs" / f"{run_id}.json"
     t = json.loads(local.read_text()) if local.exists() else aws.load_trace(run_id)
     if not t:
-        raise HTTPException(404, "not found")
+        raise HTTPException(404, "No saved analysis with that run ID.")
     return t
 
 
@@ -83,8 +84,8 @@ def _stream_run(persona, request):
         try:
             trace = run(persona, request, on_step=lambda s: q.put(("step", {"label": s})))
             q.put(("result", trace))
-        except Exception as e:  # surface errors to the UI instead of hanging
-            q.put(("error", {"message": str(e)[:500]}))
+        except Exception as e:  # surface a readable error to the UI instead of hanging
+            q.put(("error", friendly(e)))
         q.put(None)
 
     threading.Thread(target=work, daemon=True).start()
@@ -99,9 +100,11 @@ def _stream_run(persona, request):
 @app.post("/api/analyze")
 def analyze(body: AnalyzeIn):
     if body.persona_id not in PERSONAS:
-        raise HTTPException(404, "unknown persona")
+        raise HTTPException(404, "That investor profile doesn't exist. Reload the page.")
     if not body.request.strip():
-        raise HTTPException(400, "empty request")
+        raise HTTPException(400, "Type an idea first, or pick one of the suggestions.")
+    if len(body.request) > 1000:
+        raise HTTPException(400, "That's too long. Describe the idea in a sentence or two.")
     return StreamingResponse(_stream_run(PERSONAS[body.persona_id], body.request), media_type="text/event-stream")
 
 
@@ -118,7 +121,7 @@ def compare(body: CompareIn):
             try:
                 q.put(("result", {"persona_id": pid, "trace": run(PERSONAS[pid], body.request)}))
             except Exception as e:
-                q.put(("error", {"persona_id": pid, "message": str(e)[:300]}))
+                q.put(("error", {"persona_id": pid, **friendly(e)}))
 
         with ThreadPoolExecutor(len(PERSONAS)) as ex:
             for pid in PERSONAS:

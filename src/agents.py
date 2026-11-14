@@ -39,7 +39,8 @@ def intake(request_text, persona, universe_brief):
     payload = {"request": request_text,
                "goals": [{k: g[k] for k in ("id", "label", "horizon_years")} for g in persona["goals"]],
                "holdings": persona["holdings"], "universe": universe_brief}
-    schema = ('{"in_scope": bool, "action": "buy"|"sell", "ticker": str, "amount_cad": number, "goal_id": str, '
+    schema = ('{"in_scope": bool, "security_mentioned": str|null (the security as the investor named it, e.g. "Palantir"), '
+              '"action": "buy"|"sell", "ticker": str, "amount_cad": number, "goal_id": str, '
               '"funding": str, "funding_goal_id": str|null, "investor_rationale": str (their stated reason, verbatim-ish), '
               '"interpretation": str (one sentence), "ambiguities": [str]}')
     return _call(role, payload, schema, temperature=0.0, max_tokens=800)

@@ -244,3 +244,14 @@ pre.json { background: #0f1419; color: #d6dde6; padding: 12px; border-radius: 8p
 .prose h2 { font: 600 24px var(--serif); margin: 4px 0 10px; }
 .prose h3 { font: 600 17px var(--serif); margin: 26px 0 8px; }
 .prose p, .prose li { color: var(--ink-2); font-size: 14px; }
+
+/* errors & follow-up */
+.errcard { margin-top: 16px; border-left: 4px solid var(--bad); }
+.err-title { font: 600 18px var(--serif); margin-bottom: 4px; }
+.errcard p { margin: 4px 0; color: var(--ink-2); }
+.err-action { color: var(--ink) !important; }
+.err-row { display: flex; align-items: flex-start; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+.err-row details { flex: 1; min-width: 240px; }
+.followup .universe { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.followup .ugroup .chips { gap: 5px; }
+.followup .chip { font-size: 12px; padding: 3px 9px; }

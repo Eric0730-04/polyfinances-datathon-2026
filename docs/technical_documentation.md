@@ -217,7 +217,10 @@ There are three views:
 - **Compare investors:** the same idea for every persona, run in parallel.
 - **Method & data:** risk units, limits, verdict rules, sources, macro context, AWS services.
 
-When information is missing, the investor gets a **targeted follow-up question** and can answer it in place. Any past analysis can be re-opened from its S3 audit record with `/?run=<run_id>`.
+When information is missing, the investor gets a **targeted follow-up question** and can answer it in place.
+It is built deterministically from structured issue codes: out-of-universe security (with an asset picker), missing amount (one-click amounts), unknown goal, an unclear request, or an attempt to override the rules. The raw codes stay in the audit trail.
+
+**Errors are written for users** (`src/errors.py`). Every failure becomes a title, a plain explanation, what to do and whether retrying helps; the technical detail is hidden behind a toggle. Covered cases: expired or invalid AWS credentials, missing credentials, throttling, network problems, unreadable agent output, the server being unreachable, and invalid input. Any past analysis can be re-opened from its S3 audit record with `/?run=<run_id>`.
 
 ## 7. Explainability
 

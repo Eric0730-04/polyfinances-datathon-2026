@@ -33,39 +33,108 @@ class Trace:
         return output
 
 
-def _followup(a, errs, persona):
-    """A targeted question for the missing piece (deterministic, so it is always answerable)."""
-    if any("override" in x.lower() or "ignore" in x.lower() for x in a.get("ambiguities", [])):
-        return "SecondLook's rules can't be switched off. What would you like to check, as a normal request?"
-    if any(e.startswith("Unknown ticker") or "out of scope" in e for e in errs):
-        return ("Which security did you mean? This prototype covers the 31 assets of the official starter universe "
-                "(e.g. RY.TO, TSLA, NVDA, SPY, XBB.TO, ESGV, BTC-USD).")
-    if any("amount" in e.lower() for e in errs):
-        return f"How much, in Canadian dollars, and is it new money or from an existing holding?"
-    if any(e.startswith("Unknown goal") for e in errs):
-        return "Which goal is this money for: " + ", ".join(g["label"] for g in persona["goals"]) + "?"
-    return "Could you add the missing details: which security, how much, and where the money comes from?"
+OVERRIDE_RE = re.compile(r"ignore (all |your |previous )*(rules|instructions)|say (this|it) is consistent|"
+                         r"override|disregard (the |your )?(rules|instructions)", re.I)
 
 
-def _validate_action(a, persona):
+def _validate_action(a, persona, request=""):
+    """Return a list of issue codes (kept in the audit trail; never shown raw to the user)."""
     goals = {g["id"] for g in persona["goals"]}
-    errs = []
-    if not a.get("in_scope", True):
-        errs.append("Request is out of scope for the prototype universe")
+    issues = []
+    if OVERRIDE_RE.search(request):
+        issues.append("override_attempt")
     if a.get("ticker") not in UNIVERSE:
-        errs.append(f"Unknown ticker {a.get('ticker')}")
+        named = a.get("security_mentioned") or a.get("ticker")
+        issues.append("out_of_universe" if named and str(named).lower() not in ("none", "null", "unknown") else "unclear")
     try:
         if float(a.get("amount_cad") or 0) <= 0:
-            errs.append("Missing or non-positive amount")
+            issues.append("missing_amount")
     except (TypeError, ValueError):
-        errs.append("Amount is not a number")
+        issues.append("missing_amount")
     if a.get("goal_id") not in goals:
-        errs.append(f"Unknown goal {a.get('goal_id')}")
+        issues.append("unknown_goal")
+    if not a.get("in_scope", True) and not issues:
+        issues.append("unclear")
     if a.get("funding_goal_id") not in goals:
         a["funding_goal_id"] = None
     if a.get("funding") not in UNIVERSE:
         a["funding"] = "new_money"
-    return errs
+    return issues
+
+
+def _universe_groups():
+    groups = {"Canadian stocks": [], "US stocks": [], "ETFs (funds)": [], "Crypto": []}
+    for t, m in UNIVERSE.items():
+        if t == "CASH":
+            continue
+        if m["asset_class"] == "crypto":
+            groups["Crypto"].append(t)
+        elif m["diversified"] or m["asset_class"] in ("fixed_income", "cash_equivalent", "commodity"):
+            groups["ETFs (funds)"].append(t)
+        elif t.endswith(".TO"):
+            groups["Canadian stocks"].append(t)
+        else:
+            groups["US stocks"].append(t)
+    return groups
+
+
+def _needs_info(a, issues, persona):
+    """Plain-language answer when the request can't be analysed yet: what we understood, what's missing,
+    one specific question, and one-click answers."""
+    name = persona["name"]
+    asked = a.get("security_mentioned") or (a.get("ticker") if a.get("ticker") in UNIVERSE else None)
+    understood = []
+    if a.get("ticker") in UNIVERSE:
+        understood.append(f"{a.get('action', 'buy')} {UNIVERSE[a['ticker']]['name']} ({a['ticker']})")
+    try:
+        if float(a.get("amount_cad") or 0) > 0:
+            understood.append(f"${float(a['amount_cad']):,.0f}")
+    except (TypeError, ValueError):
+        pass
+    res = {"verdict": "INSUFFICIENT_DATA", "confidence": "n/a", "issues": issues,
+           "understood": " · ".join(understood) or None, "quick_answers": [], "universe_groups": None}
+    if "override_attempt" in issues:
+        res.update(headline="SecondLook's rules can't be switched off.",
+                   plain_summary="The request asks to ignore the rules or to force a verdict. The rules are what make the "
+                                 "answer trustworthy, so they always apply. Ask the same question without that part and "
+                                 "SecondLook will check it normally.",
+                   followup_question="What would you like to check?")
+        tail = OVERRIDE_RE.split(a.get("investor_rationale") or "")[-1].strip(" :.,-") if a.get("investor_rationale") else ""
+        if tail and len(tail) > 10:
+            res["quick_answers"] = [tail[0].upper() + tail[1:]]
+        return res
+    if "out_of_universe" in issues:
+        what = asked or "That security"
+        res.update(headline=f"{what} isn't one of the 31 assets SecondLook can analyse.",
+                   plain_summary="This prototype only analyses the official starter universe, so every number can be "
+                                 "computed from documented data. Pick one of the assets below, or a similar one.",
+                   followup_question="Which of these did you mean?", universe_groups=_universe_groups())
+        return res
+    if "unclear" in issues:
+        res.update(headline="SecondLook couldn't tell what the idea is.",
+                   plain_summary="Describe it like you would to a friend: what to buy or sell, how much, and where the money "
+                                 "comes from. For example: \"Move $10,000 from my XBB bond fund into SPY.\"",
+                   followup_question="What would you like to do?", quick_answers=persona.get("sample_requests", [])[:2])
+        return res
+    if "missing_amount" in issues:
+        sec = UNIVERSE[a["ticker"]]["name"] if a.get("ticker") in UNIVERSE else "it"
+        res.update(headline="How much would you like to put in?",
+                   plain_summary=f"SecondLook understood the idea but needs an amount to check it against {name}'s limits, "
+                                 f"and to know where the money comes from (new money or an existing holding).",
+                   followup_question=f"How much, in Canadian dollars, for {sec}?",
+                   quick_answers=["$5,000 of new money", "$10,000 of new money", "$20,000 of new money"])
+        return res
+    if "unknown_goal" in issues:
+        res.update(headline="Which goal is this money for?",
+                   plain_summary=f"{name} has several goals with different time horizons, and the answer depends on which "
+                                 "one this money belongs to.",
+                   followup_question="Which goal?", quick_answers=[f"For my {g['label'].lower()}" for g in persona["goals"]])
+        return res
+    res.update(headline="SecondLook couldn't tell what the idea is.",
+               plain_summary="Describe it like you would to a friend: what to buy or sell, how much, and where the money "
+                             "comes from. For example: \"Move $10,000 from my XBB bond fund into SPY.\"",
+               followup_question="What would you like to do?", quick_answers=persona.get("sample_requests", [])[:2])
+    return res
 
 
 def run(persona: dict, request: str, action_override: dict | None = None, on_step=None) -> dict:
@@ -82,15 +151,13 @@ def run(persona: dict, request: str, action_override: dict | None = None, on_ste
     else:
         parsed, meta = agents.intake(request, persona, UNIVERSE_BRIEF)
         action = tr.step("intake", "llm", parsed, meta)
-    errs = _validate_action(action, persona)
+    errs = _validate_action(action, persona, request)
     if re.search(r"\bnew money\b|\bfresh money\b", request, re.I) and action.get("funding") != "new_money" and not errs:
         tr.step("validator", "deterministic", {"correction": f"request says 'new money': funding {action.get('funding')} -> new_money"})
         action["funding"], action["funding_goal_id"] = "new_money", None
     if errs:
-        tr.step("validator", "deterministic", {"errors": errs})
-        tr.data["result"] = {"verdict": "INSUFFICIENT_DATA", "headline": "I need more details before taking a second look.",
-                             "plain_summary": " ".join(errs + action.get("ambiguities", [])), "confidence": "low",
-                             "followup_question": _followup(action, errs, persona)}
+        tr.step("validator", "deterministic", {"issues": errs, "intake_ambiguities": action.get("ambiguities", [])})
+        tr.data["result"] = _needs_info(action, errs, persona)
         tr.data["elapsed_s"] = round(time.time() - t0, 1)
         return _finish(tr)
 
@@ -191,8 +258,9 @@ def _finish(tr):
     try:
         tr.data["s3_uri"] = aws.save_trace(tr.data)
     except Exception as e:
+        from src.errors import friendly
         tr.data["s3_uri"] = None
-        tr.data["s3_error"] = str(e)[:200]
+        tr.data["s3_error"] = friendly(e)["title"]
     return tr.data
 
 
