@@ -10,7 +10,7 @@ import re
 import boto3
 
 REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
-DEFAULT_MODEL = os.getenv("BEDROCK_MODEL_ID", "us.amazon.nova-lite-v1:0")
+DEFAULT_MODEL = os.getenv("BEDROCK_MODEL_ID", "global.amazon.nova-2-lite-v1:0")
 
 _client = None
 

@@ -12,7 +12,7 @@ python scripts/check_aws.py   # verifies identity + Bedrock Nova Lite
 
 ## Layout
 
-- `src/bedrock.py` — Bedrock Converse wrapper (`chat`, `chat_json`); default model `us.amazon.nova-lite-v1:0`, override with `BEDROCK_MODEL_ID`
+- `src/bedrock.py` — Bedrock Converse wrapper (`chat`, `chat_json`); default model `global.amazon.nova-2-lite-v1:0` (workshop-recommended), override with `BEDROCK_MODEL_ID`
 - `scripts/` — runnable entry points
 - `data/` — local datasets (contents are git-ignored)
 
