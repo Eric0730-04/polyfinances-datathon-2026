@@ -45,6 +45,10 @@ An investor types an idea ("move $60k from my bond fund into Tesla"). SecondLook
 
 It never recommends what to buy.
 
+**On top of the verdict:**
+- a **What-if simulator** tab (instant, rules only);
+- a **follow-up chat** under each answer. It answers from that analysis only; what-if questions are computed by the rules engine.
+
 **Pipeline:**
 1. The intake agent parses the request.
 2. A deterministic toolbox computes every number. It never uses an LLM.

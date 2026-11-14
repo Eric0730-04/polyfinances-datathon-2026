@@ -311,3 +311,36 @@ pre.json { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 10
 .prose h2 { font-size: 24px; font-weight: 800; letter-spacing: -.02em; margin: 4px 0 10px; }
 .prose h3 { font-size: 16px; font-weight: 700; margin: 26px 0 8px; }
 .prose p, .prose li { color: var(--ink-2); }
+
+/* what-if simulator */
+.whatif { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 18px; }
+@media (max-width: 1100px) { .whatif { grid-template-columns: 1fr; } }
+.wi-controls { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; background: var(--surface-2); }
+.wi-row label { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+.wi-row label b { color: var(--ink); }
+.wi-row select { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 7px 9px; font: 13px var(--font); background: var(--surface); }
+.wi-row input[type=range] { width: 100%; accent-color: var(--primary); }
+.wi-row .seg { display: flex; flex-wrap: wrap; }
+.wi-row .seg button { flex: 1; padding: 5px 6px; font-size: 12px; }
+.wi-out { border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+.wi-verdict { display: flex; gap: 14px; align-items: center; }
+.badge-ring.sm { width: 46px; height: 46px; border-width: 3px; }
+.badge-ring.sm svg { width: 20px; height: 20px; }
+.wi-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border-top: 1px solid var(--line-2); padding-top: 12px; }
+
+/* follow-up chat */
+.chat { border-top: 1px solid var(--line); background: var(--surface-2); padding: 14px 20px 18px; }
+.chat-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.chat-head .muted { margin-left: auto; }
+.chat-msgs { display: flex; flex-direction: column; gap: 10px; }
+.chat-msgs:empty { display: none; }
+.cm-user { align-self: flex-end; max-width: 75%; background: var(--ink); color: #fff; padding: 8px 12px; border-radius: 14px 14px 4px 14px; font-size: 13.5px; }
+.cm-ai { align-self: flex-start; max-width: 85%; background: var(--surface); border: 1px solid var(--line); padding: 10px 13px; border-radius: 14px 14px 14px 4px; font-size: 13.5px; box-shadow: var(--shadow); }
+.cm-meta { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.cm-rerun { margin-top: 8px; font-size: 12px; padding: 6px 10px; text-align: left; }
+.err-inline { border-color: var(--bad-line); background: var(--bad-bg); color: var(--bad); }
+.typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
+.typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: blink 1.2s infinite; }
+.typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+.instant { margin-top: 10px; border: 1px solid var(--line); border-left: 4px solid var(--vc); border-radius: 10px; padding: 10px 12px; background: var(--surface-2); }

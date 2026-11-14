@@ -151,3 +151,30 @@ def judge(persona, action, bundle):
               '"facts": [str], "assumptions": [str], "fictional": [str], '
               '"limits": [str] (limitations of THIS ANALYSIS: data coverage, method, model uncertainty; not the investor\'s constraints)}')
     return _call(role, bundle, schema, temperature=0.1, max_tokens=3000)
+
+
+# ------------------------------------------------------------------ follow-up chat
+
+def chat(persona, context, history, question, analysable=None):
+    """Answer a follow-up question about ONE analysis, grounded only in that analysis's data."""
+    style = {"novice": "Use very simple words and one concrete dollar example.",
+             "intermediate": "Be clear and brief; light jargon is fine.",
+             "sophisticated": "Be concise and precise."}.get(persona.get("knowledge_level"), "Be clear.")
+    role = ("ROLE: SecondLook follow-up assistant. The investor is asking about the analysis in DATA. Answer ONLY from DATA "
+            "(analysis result, computed numbers, rules, variants, stress tests, macro context, agent debate). "
+            "Answer in 2-5 short sentences, plain language, citing the relevant numbers with their period when useful. "
+            "If the question asks about a DIFFERENT VERSION of the idea (other amount, other asset from analysable_assets, "
+            "other goal or funding source): do NOT estimate any number for it. Fill `whatif` with that version (ticker from "
+            "analysable_assets, amount_cad, goal_id from the investor's goals, funding = 'new_money' or a held ticker) and "
+            "say in one sentence that SecondLook ran an instant check of that version, shown below. Also put the version in "
+            "rerun_request, written as the investor would ask it. "
+            "If the question needs information not in DATA and not in analysable_assets (news, forecasts, tax, other "
+            "companies), say plainly that this analysis does not contain it. Never recommend buying or selling, never "
+            "predict prices or returns. " + style)
+    payload = {"analysis": context, "investor_goals": [{k: g[k] for k in ("id", "label", "horizon_years")} for g in persona.get("goals", [])],
+               "investor_holdings": [h["ticker"] for h in persona.get("holdings", [])],
+               "analysable_assets": analysable, "conversation_so_far": history[-6:], "question": question}
+    schema = ('{"answer": str, "whatif": {"ticker": str, "amount_cad": number, "goal_id": str, "funding": str}|null, '
+              '"rerun_request": str|null, '
+              '"suggested_questions": [str] (up to 3 short follow-up questions the investor might ask next)}')
+    return _call(role, payload, schema, temperature=0.2, max_tokens=900)

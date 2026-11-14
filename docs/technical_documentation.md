@@ -217,6 +217,10 @@ Each variant is re-evaluated with the same rules.
   - a verdict badge and a gauge of the goal's risk budget used;
   - the interpreted action and how many numbers were verified;
   - tabs: **Overview** (why, what would change it, computed variants), **Rules & limits** (pre-trade checks and risk budget by goal), **Portfolio X-ray** (before/after donuts and look-through tables), **Stress tests** (chart and table), **About the asset** (risk, company snapshot, ESG screen), **Agent debate**, **Evidence & audit** (facts / assumptions / fiction / limits, execution trace, sources, S3 record, raw outputs).
+- **What-if simulator** (tab): sliders and selectors for amount, asset, funding source, goal, goal horizon and risk profile. The deterministic rules are recomputed in about 2 ms per change (`POST /api/whatif`, no AI), so the verdict, the goal's risk-budget bar and the triggered rules update live. This is the brief's "change a hypothesis, a scenario, a profile" test, made interactive. A button runs the full multi-agent analysis on the chosen version.
+- **Follow-up chat** (under every answer, `POST /api/chat`): a 10th agent answers questions about *that* analysis only, from a compact grounded view of its trace (verdict, rules, variants, stress tests, macro context, debate).
+  - **Ordinary questions** get the same numeric grounding check and Bedrock Guardrail as the main answer. Questions asking for predictions get a plain refusal that explains what SecondLook can show instead.
+  - **"What if" questions** (other amount, asset, goal or funding, including assets named in plain words such as "Apple") are evaluated by the **rules engine**, not estimated by the model. The reply text is built from the computed result and shown as an "instant check" card, with a button to run the full analysis.
 - **Compare investors** and **How it works** views.
 
 When information is missing, the investor gets a **targeted follow-up question** and can answer it in place.

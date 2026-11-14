@@ -86,11 +86,13 @@ async function boot() {
   if (qs.get("view")) showView(qs.get("view"));
   if (qs.get("q")) ask(qs.get("q"));
   if (qs.get("compare")) { showView("compare"); $("#compareRequest").value = qs.get("compare"); compare(); }
+  if (qs.get("ask") && qs.get("run")) state.pendingChat = qs.get("ask");  // demo/test: open a run and ask a follow-up
   if (qs.get("run")) {
     try {
       const t = await fetch(`/api/trace/${encodeURIComponent(qs.get("run"))}`).then(ok);
       selectPersona(t.persona_id);
       addDone(t.persona_id, t.request, t, qs.get("tab"));
+      if (state.pendingChat) { const it = thread(t.persona_id).at(-1); askChat(it, state.pendingChat); }
     } catch (e) { $("#thread").innerHTML = errorCard(e.f || { title: "Couldn't open that analysis", technical: String(e) }); }
   }
 }
@@ -314,6 +316,7 @@ function bindItem(it) {
   $$(".tabs button", root).forEach((b) => b.addEventListener("click", () => openTab(it, b.dataset.tab)));
   openTab(it, it.tab || "overview");
   drawGauge(it);
+  renderChat(it);
 }
 
 // ------------------------------------------------------------------ agent flow
@@ -357,11 +360,12 @@ function answerHtml(it) {
       ${t.grounding?.summary ? `<span>Numbers verified <b>${esc(t.grounding.summary.replace(" figures traced to data", ""))}</b></span>` : ""}
       <span>Run <b>${esc(t.run_id)}</b> · ${t.elapsed_s}s</span></div>`;
   if (!tool) return `<div class="card answer">${head}</div>${followupHtml(it)}`;
-  const tabs = [["overview", "Overview"], ["rules", "Rules & limits"], ["xray", "Portfolio X-ray"], ["stress", "Stress tests"],
+  const tabs = [["overview", "Overview"], ["whatif", "What-if simulator"], ["rules", "Rules & limits"], ["xray", "Portfolio X-ray"], ["stress", "Stress tests"],
     ["asset", `About ${tool.security.ticker}`], ["debate", "Agent debate"], ["evidence", "Evidence & audit"]];
   return `<div class="card answer">${head}
     <div class="tabs">${tabs.map(([k, l]) => `<button data-tab="${k}">${esc(l)}</button>`).join("")}</div>
-    <div class="tab-body" id="tb-${it.id}"></div></div>`;
+    <div class="tab-body" id="tb-${it.id}"></div>
+    <div class="chat" id="ch-${it.id}"></div></div>`;
 }
 
 function drawGauge(it) {
@@ -379,8 +383,9 @@ function openTab(it, tab) {
   const root = document.getElementById(it.id);
   $$(".tabs button", root).forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
   const body = document.getElementById(`tb-${it.id}`), t = it.trace;
-  body.innerHTML = ({ overview: tabOverview, rules: tabRules, xray: tabXray, stress: tabStress, asset: tabAsset, debate: tabDebate, evidence: tabEvidence })[tab](t, it);
+  body.innerHTML = ({ overview: tabOverview, whatif: tabWhatif, rules: tabRules, xray: tabXray, stress: tabStress, asset: tabAsset, debate: tabDebate, evidence: tabEvidence })[tab](t, it);
   if (tab === "xray") bindXray(t, it);
+  if (tab === "whatif") bindWhatif(t, it);
   if (tab === "stress") stressChart(t, it);
 }
 
@@ -409,6 +414,124 @@ function tabOverview(t) {
       <span class="muted small" style="font-weight:400">· recomputed with the same rules · information, not advice</span></div>
     <div class="variants">${changed.map((c) => (c.fixes ? variantCard(c) : `<div class="vcard v-${vinfo(c.ceiling).cls}">${pill(c.ceiling)}<div class="vt">${esc(c.variant)}</div></div>`)).join("")}</div>` : ""}
     ${r.debate_takeaway ? `<div class="alert alert-info" style="margin-top:14px"><b>Judge's takeaway:</b> ${esc(r.debate_takeaway)}</div>` : ""}`;
+}
+
+// ------------------------------------------------------------------ follow-up chat (grounded in this analysis)
+const DEFAULT_QS = ["Why is this risky for me?", "Explain it in simple words", "How did this do in 2022?", "What would make this idea fit my profile?"];
+function renderChat(it) {
+  const el = document.getElementById(`ch-${it.id}`);
+  if (!el) return;
+  it.chat ||= [];
+  const last = [...it.chat].reverse().find((m) => m.role === "ai" && m.suggested?.length);
+  const sugg = it.chat.length ? (last?.suggested || []) : DEFAULT_QS;
+  el.innerHTML = `<div class="chat-head">${AI_SVG.replace('stroke="#fff"', 'stroke="#2563eb"').replace('stroke="#fff"', 'stroke="#2563eb"')}<b>Ask a follow-up about this answer</b>
+      <span class="small muted">answers only from this analysis · numbers verified</span></div>
+    <div class="chat-msgs">${it.chat.map((m) => m.role === "user" ? `<div class="cm-user">${esc(m.text)}</div>` : m.pending
+      ? `<div class="cm-ai"><span class="typing"><i></i><i></i><i></i></span></div>`
+      : m.error ? `<div class="cm-ai err-inline"><b>${esc(m.error.title)}</b> ${esc(m.error.action || "")}</div>`
+      : `<div class="cm-ai">${esc(m.text)}
+          <div class="cm-meta">${esc(m.grounding?.checked || m.instant ? m.grounding.summary : "no figures cited")}${m.guardrail === "GUARDRAIL_INTERVENED" ? " · guardrail edited this answer" : ""}</div>
+          ${m.instant ? instantCard(m.instant) : ""}
+          ${m.rerun ? `<button class="btn cm-rerun" data-rerun="${esc(m.rerun)}">Run the full AI analysis: “${esc(m.rerun)}”</button>` : ""}</div>`).join("")}</div>
+    ${sugg.length ? `<div class="pills">${sugg.map((q) => `<button class="pill" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>` : ""}
+    <div class="followup-input"><input data-cin placeholder="e.g. What if I only put in half?"><button class="btn" data-csend>Ask</button></div>`;
+  const send = (q) => { q = q.trim(); if (q) askChat(it, q); };
+  $("[data-csend]", el).addEventListener("click", () => send($("[data-cin]", el).value));
+  $("[data-cin]", el).addEventListener("keydown", (e) => { if (e.key === "Enter") send(e.target.value); });
+  $$("[data-q]", el).forEach((b) => b.addEventListener("click", () => send(b.dataset.q)));
+  $$("[data-rerun]", el).forEach((b) => b.addEventListener("click", () => ask(b.dataset.rerun)));
+}
+function instantCard(c) {
+  const v = vinfo(c.ceiling), a = c.action, g = c.goal, over = g.after > g.limit + 1e-9;
+  return `<div class="instant v-${v.cls}"><div class="split" style="margin:0 0 4px"><b>Instant check · ${esc(a.ticker)} ${money(a.amount_cad)} ${a.funding === "new_money" ? "new money" : `from ${esc(a.funding)}`}</b>${pill(c.ceiling)}</div>
+    <div class="small">${esc(g.label)} risk: ${pct(g.before)} → <b style="color:${over ? "var(--bad)" : "inherit"}">${pct(g.after)}</b> (limit ${pct(g.limit)})</div>
+    ${c.reasons.length ? `<ul class="vw">${c.reasons.map((x) => `<li>${esc(clean(x))}</li>`).join("")}</ul>` : `<div class="small muted">No limit or preference breached.</div>`}
+    <div class="cm-meta">computed by the rules engine · no AI</div></div>`;
+}
+async function askChat(it, q) {
+  const history = it.chat.filter((m) => !m.pending && !m.error).map((m) => ({ role: m.role, text: m.text }));
+  it.chat.push({ role: "user", text: q }, { role: "ai", pending: true });
+  renderChat(it);
+  const slot = it.chat[it.chat.length - 1];
+  try {
+    const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ run_id: it.trace.run_id, question: q, history }) }).then(ok);
+    if (r.error) Object.assign(slot, { pending: false, error: r.error });
+    else Object.assign(slot, { pending: false, text: r.answer, rerun: r.rerun_request, instant: r.instant_check, suggested: r.suggested_questions, grounding: r.grounding, guardrail: r.guardrail });
+  } catch (e) {
+    Object.assign(slot, { pending: false, error: e.f || { title: "Couldn't answer", action: "Try again." } });
+  }
+  renderChat(it);
+  document.getElementById(`ch-${it.id}`)?.querySelector(".chat-msgs")?.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// ------------------------------------------------------------------ what-if simulator (deterministic, instant)
+function tabWhatif(t, it) {
+  const p = persona(t.persona_id), a = t.action, id = it.id;
+  const amt = +a.amount_cad, max = Math.max(20000, Math.ceil((amt * 2) / 5000) * 5000);
+  const goal = p.goals.find((g) => g.id === a.goal_id) || p.goals[0];
+  const groups = {};
+  Object.entries(state.meta.universe).filter(([k]) => k !== "CASH").forEach(([k, v]) => { (groups[title(v.asset_class)] ||= []).push([k, v.name]); });
+  const holdings = [...new Map(p.holdings.map((h) => [h.ticker, h])).values()];
+  return `<div class="whatif">
+    <div class="wi-controls">
+      <div class="wi-row"><label>Amount <b id="wa-${id}">${money(amt)}</b></label><input type="range" id="wamt-${id}" min="0" max="${max}" step="250" value="${amt}"></div>
+      <div class="wi-row"><label>Asset</label><select id="wtk-${id}">${Object.entries(groups).map(([g, xs]) => `<optgroup label="${esc(g)}">${xs.map(([k, n]) => `<option value="${k}" ${k === a.ticker ? "selected" : ""}>${esc(k)} · ${esc(n)}</option>`).join("")}</optgroup>`).join("")}</select></div>
+      <div class="wi-row"><label>Paid with</label><select id="wfd-${id}"><option value="new_money">New money</option>${holdings.map((h) => `<option value="${h.ticker}|${h.goal}" ${h.ticker === a.funding ? "selected" : ""}>Sell ${esc(h.ticker)} (${money(h.value_cad)} held)</option>`).join("")}</select></div>
+      <div class="wi-row"><label>For goal</label><select id="wgl-${id}">${p.goals.map((g) => `<option value="${g.id}" ${g.id === goal.id ? "selected" : ""}>${esc(g.label)}</option>`).join("")}</select></div>
+      <div class="wi-row"><label>Goal horizon <b id="wh-${id}">${goal.horizon_years} years</b></label><input type="range" id="whz-${id}" min="0" max="40" step="0.5" value="${goal.horizon_years}"></div>
+      <div class="wi-row"><label>Risk profile</label><div class="seg" id="wrt-${id}">${Object.keys(RISK).map((k) => `<button data-v="${k}" class="${k === p.risk_tolerance ? "on" : ""}">${RISK[k]}</button>`).join("")}</div></div>
+      <button class="link" id="wreset-${id}">Reset to the original idea</button>
+    </div>
+    <div class="wi-out" id="wout-${id}"><div class="skeleton"></div></div>
+  </div>`;
+}
+function bindWhatif(t, it) {
+  const p = persona(t.persona_id), id = it.id, q = (s) => document.getElementById(`${s}-${id}`);
+  let timer, tol = p.risk_tolerance, horizonTouched = false;
+  const syncHorizon = () => { const g = p.goals.find((x) => x.id === q("wgl").value); q("whz").value = g.horizon_years; q("wh").textContent = `${g.horizon_years} years`; horizonTouched = false; };
+  const action = () => {
+    const [fund, fgoal] = q("wfd").value.split("|");
+    return { action: "buy", ticker: q("wtk").value, amount_cad: +q("wamt").value, goal_id: q("wgl").value, funding: fund, funding_goal_id: fgoal || null };
+  };
+  const run = () => {
+    q("wa").textContent = money(+q("wamt").value);
+    q("wh").textContent = `${q("whz").value} years`;
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      try {
+        const r = await fetch("/api/whatif", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ persona_id: p.id, action: action(), horizon_years: horizonTouched ? +q("whz").value : null, risk_tolerance: tol }) }).then(ok);
+        renderWhatif(t, it, r, action(), tol !== p.risk_tolerance || horizonTouched);
+      } catch (e) { q("wout").innerHTML = errorCard(e.f || { title: "Couldn't recompute", technical: String(e) }); }
+    }, 120);
+  };
+  ["wamt", "wtk", "wfd"].forEach((k) => q(k).addEventListener("input", run));
+  q("wgl").addEventListener("input", () => { syncHorizon(); run(); });
+  q("whz").addEventListener("input", () => { horizonTouched = true; run(); });
+  $$(`#wrt-${id} button`).forEach((b) => b.addEventListener("click", () => { tol = b.dataset.v; $$(`#wrt-${id} button`).forEach((x) => x.classList.toggle("on", x === b)); run(); }));
+  q("wreset").addEventListener("click", () => openTab(it, "whatif"));
+  run();
+}
+function renderWhatif(t, it, r, a, profileChanged) {
+  const p = persona(t.persona_id), v = vinfo(r.ceiling);
+  const g = r.buckets_after.find((x) => x.goal_id === r.goal_id), b = r.buckets_before.find((x) => x.goal_id === r.goal_id);
+  const sc = Math.max(0.3, g.risky_share, g.allowed_max_risky, b.risky_share) * 1.12, over = g.status === "over limit";
+  const fundTxt = a.funding === "new_money" ? "with new money" : `paid by selling ${a.funding}`;
+  const req = `Put $${Math.round(a.amount_cad).toLocaleString("en-US")} into ${a.ticker} ${fundTxt}, for my ${p.goals.find((x) => x.id === a.goal_id).label.toLowerCase()} goal.`;
+  const orig = t.toolbox.rules.ceiling;
+  document.getElementById(`wout-${it.id}`).innerHTML = `
+    <div class="wi-verdict v-${v.cls}"><div class="badge-ring sm">${ICON[v.cls]}</div>
+      <div><div class="v-label">${v.label}</div>
+      <div class="small muted">${r.ceiling === orig ? "Same verdict as the original idea" : `Changed from <b>${vinfo(orig).short}</b>`}</div></div></div>
+    <div class="wi-budget"><div class="split" style="margin:0 0 6px"><b>${esc(g.label)}</b><span class="small muted">${g.horizon_years}-year horizon · limit ${pct(g.allowed_max_risky)}</span></div>
+      <div class="track"><div class="b" style="width:${(b.risky_share / sc) * 100}%"></div><div class="a ${over ? "over" : ""}" style="width:${(g.risky_share / sc) * 100}%"></div>
+        <div class="lim" style="left:${(g.allowed_max_risky / sc) * 100}%"></div></div>
+      <div class="small" style="margin-top:6px">${pct(b.risky_share)} → <b style="color:${over ? "var(--bad)" : "var(--ink)"}">${pct(g.risky_share)}</b> of S&amp;P 500 risk · ${a.ticker} is ${r.risk_units.toFixed(2)}× the S&amp;P 500</div></div>
+    <div class="wi-reasons">${r.reasons.length ? `<ul class="list ${r.ceiling === "INCONSISTENT" ? "red" : "amber"}">${r.reasons.map((x) => `<li>${esc(clean(x))}</li>`).join("")}</ul>` : `<div class="alert alert-info" style="margin:0">No limit or preference is breached by this version.</div>`}</div>
+    <div class="wi-foot"><span class="small muted">Instant · deterministic rules · no AI involved</span>
+      ${profileChanged ? `<span class="small muted">Profile changes are hypothetical; the full analysis uses ${esc(p.name)}'s stated profile.</span>` : `<button class="btn" data-full>Run full AI analysis on this version</button>`}</div>`;
+  document.querySelector(`#wout-${it.id} [data-full]`)?.addEventListener("click", () => ask(req));
 }
 
 function checkPill(c) {
