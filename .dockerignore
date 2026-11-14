@@ -1,0 +1,8 @@
+.venv
+.git
+runs
+docs/case
+tests
+scripts
+__pycache__
+*.pyc

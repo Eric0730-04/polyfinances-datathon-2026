@@ -23,7 +23,7 @@ const ICON = {
   na: '<svg width="26" height="26" viewBox="0 0 24 24"><path d="M9.2 9.3a2.9 2.9 0 1 1 3.8 2.8c-.6.3-1 .8-1 1.5v.6" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.5" fill="currentColor"/></svg>',
 };
 const CHECK_SVG = '<svg width="14" height="14" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-const AI_SVG = '<svg width="20" height="20" viewBox="0 0 26 26"><circle cx="10" cy="13" r="5.2" fill="none" stroke="#fff" stroke-width="2"/><circle cx="16" cy="13" r="5.2" fill="none" stroke="#fff" stroke-width="2" opacity=".75"/></svg>';
+const AI_SVG = '<span class="mono">SL</span>';
 
 const FLOW = [["Intake", "Intake"], ["Toolbox", "Toolbox"], ["Profile and market", "Profile + Market"], ["Advocate vs skeptic", "Debate"],
   ["Constraint guardian", "Guardian"], ["Judge", "Judge"], ["Guardrail", "Guardrail"]];
@@ -126,7 +126,7 @@ function selectPersona(pid) {
     p.custom ? "Your investor" : p.official_persona ? "Official persona" : "Extra scenario", "Fictional"].map((t, i) => `<span class="tag ${i === 0 ? "blue" : ""}">${esc(t)}</span>`).join("");
   $("#askTitle").textContent = `What is ${p.name} thinking of doing?`;
   $("#request").placeholder = p.sample_requests[0];
-  $("#suggestions").innerHTML = p.sample_requests.map((s) => `<button class="pill">${CHECK_SVG}${esc(s)}</button>`).join("");
+  $("#suggestions").innerHTML = p.sample_requests.map((s) => `<button class="pill">${esc(s)}</button>`).join("");
   $$("#suggestions .pill").forEach((b) => b.addEventListener("click", () => ask(b.textContent.trim())));
   renderTiles(p);
   renderDash(p);
@@ -340,8 +340,7 @@ function flowHtml(trace, activeIdx = null) {
         ms = i === 1 ? "code" : i === 6 ? `${trace.guardrail?.checked || 0} checks` : lat.length ? `${(Math.max(...lat) / 1000).toFixed(1)}s` : "";
       }
     } else { cls = i < activeIdx ? "done" : i === activeIdx ? "active" : ""; ms = i < activeIdx ? "done" : i === activeIdx ? "running" : ""; }
-    const inner = cls === "done" ? CHECK_SVG : `<span style="font-size:11px;font-weight:700">${i + 1}</span>`;
-    return `${i ? `<div class="edge ${cls === "done" ? "done" : ""}"></div>` : ""}<div class="node ${cls}"><div class="nd">${inner}</div>${name}<span class="ms">${ms}</span></div>`;
+    return `${i ? `<div class="edge ${cls === "done" ? "done" : ""}"></div>` : ""}<div class="node ${cls}"><span class="nd"></span><span class="nm">${name}</span><span class="ms">${ms}</span></div>`;
   }).join("")}</div>`;
 }
 
@@ -355,11 +354,9 @@ function answerHtml(it) {
   const g = goalOfAction(t);
   const head = `${flowHtml(t)}
     <div class="v-head v-${v.cls}">
-      <div class="badge-ring">${ICON[v.cls]}</div>
-      <div><div class="v-label">${v.label}${r.confidence && r.confidence !== "n/a" ? ` · ${esc(r.confidence)} confidence` : ""}</div>
+      <div><div class="v-tagline"><span class="vtag">${v.label}</span>${r.confidence && r.confidence !== "n/a" ? `<span class="muted">${esc(title(r.confidence))} confidence</span>` : ""}</div>
         <div class="v-title">${esc(r.headline)}</div><p class="v-sum">${esc(r.plain_summary)}</p></div>
-      ${g ? `<div class="gauge"><canvas id="g-${it.id}" width="150" height="86"></canvas><div class="g-val">${pct(g.risky_share / g.allowed_max_risky)}</div>
-        <div class="g-of">of ${esc(g.label.split("(")[0].trim().toLowerCase())} risk budget</div></div>` : "<div></div>"}
+      ${g ? budgetTile(g) : "<div></div>"}
     </div>
     ${r.verdict_adjustment ? `<p class="override">Rule override: ${esc(r.verdict_adjustment)}</p>` : ""}
     <div class="meta-row">
@@ -375,6 +372,13 @@ function answerHtml(it) {
     <div class="chat" id="ch-${it.id}"></div></div>`;
 }
 
+function budgetTile(g) {
+  const used = g.risky_share / g.allowed_max_risky, over = used > 1, filled = Math.min(5, Math.round(used * 5));
+  return `<div class="btile"><div class="bt-label">${esc(g.label.split("(")[0].trim())} · risk budget used</div>
+    <div class="bt-val">${pct(used)} <span class="delta ${over ? "bad" : used > 0.85 ? "warn" : "good"}">${over ? "over limit" : "within limit"}</span></div>
+    <div class="segbar">${[0, 1, 2, 3, 4].map((i) => `<span class="${i < filled ? (over ? "over" : "on") : ""}"></span>`).join("")}</div>
+    <div class="segbar-scale"><span>${pct(g.risky_share)} of S&amp;P 500 risk</span><span>limit ${pct(g.allowed_max_risky)}</span></div></div>`;
+}
 function drawGauge(it) {
   const g = goalOfAction(it.trace), el = document.getElementById(`g-${it.id}`);
   if (!g || !el || !window.Chart) return;
@@ -400,27 +404,28 @@ const pill = (verdict) => { const i = vinfo(verdict); return `<span class="statu
 const stepOut = (t, a) => (t.steps.find((s) => s.agent === a) || {}).output || {};
 
 const clean = (x) => x.replace(/^(Hard constraint breached|Soft check \(preference\) worsened|Pre-existing breach not created by this action): /, "");
-function variantCard(c) {
-  const li = (xs) => xs.map((x) => `<li>${esc(clean(x))}</li>`).join("");
-  return `<div class="vcard v-${vinfo(c.ceiling).cls}">
-    <div class="vflip">${pill(c.base_ceiling)}<svg width="18" height="12" viewBox="0 0 18 12"><path d="M1 6h14M11 1.5L15.5 6 11 10.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>${pill(c.ceiling)}</div>
-    <div class="vt">${esc(c.variant)}</div>
-    ${c.fixes.length ? `<div class="vlab ok">Fixes</div><ul class="vw">${li(c.fixes)}</ul>` : ""}
-    ${c.still.length ? `<div class="vlab cond">Still applies</div><ul class="vw">${li(c.still)}</ul>` : ""}
-    ${c.new_issues.length ? `<div class="vlab bad">New issue</div><ul class="vw">${li(c.new_issues)}</ul>` : ""}</div>`;
+function variantRow(c) {
+  const fix = c.fixes.map(clean), still = c.still.map(clean), fresh = c.new_issues.map(clean);
+  return `<tr><td><b>${esc(c.variant)}</b></td>
+    <td class="nowrap"><span class="vt-from">${vinfo(c.base_ceiling).short}</span> → <span class="vt-to t-${vinfo(c.ceiling).cls}">${vinfo(c.ceiling).short}</span></td>
+    <td class="small">${fix.map((x) => `<div><span class="t-ok">Fixed:</span> ${esc(x)}</div>`).join("")}
+      ${still.map((x) => `<div><span class="t-cond">Still:</span> ${esc(x)}</div>`).join("")}
+      ${fresh.map((x) => `<div><span class="t-bad">New:</span> ${esc(x)}</div>`).join("")}</td></tr>`;
 }
 function tabOverview(t) {
-  const r = t.result, bad = r.verdict === "INCONSISTENT";
+  const r = t.result;
   const changed = (t.toolbox.counterfactuals || []).filter((c) => c.changes_result ?? c.ceiling !== t.toolbox.rules.ceiling);
   const better = changed.filter((c) => (c.direction || "better") === "better");
-  return `<div class="cols">
-      <div class="box"><h4>Why</h4><ul class="list ${bad ? "red" : "blue"}">${(r.key_reasons || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
-      <div class="box"><h4>This would change if</h4><ul class="list amber">${(r.no_longer_valid_if || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+  const ol = (xs) => `<ol class="plain">${(xs || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ol>`;
+  return `<div class="ov">
+      <div><h4 class="h">Why</h4>${ol(r.key_reasons)}</div>
+      <div><h4 class="h">What would change this answer</h4>${ol(r.no_longer_valid_if)}</div>
     </div>
-    ${changed.length ? `<div class="sec-title">${better.length ? "Versions of this idea that would change the answer" : "Versions that would make it worse"}
-      <span class="muted small" style="font-weight:400">· recomputed with the same rules · information, not advice</span></div>
-    <div class="variants">${changed.map((c) => (c.fixes ? variantCard(c) : `<div class="vcard v-${vinfo(c.ceiling).cls}">${pill(c.ceiling)}<div class="vt">${esc(c.variant)}</div></div>`)).join("")}</div>` : ""}
-    ${r.debate_takeaway ? `<div class="alert alert-info" style="margin-top:14px"><b>Judge's takeaway:</b> ${esc(r.debate_takeaway)}</div>` : ""}`;
+    ${changed.length ? `<h4 class="h" style="margin-top:22px">${better.length ? "Versions of this idea that would change the verdict" : "Versions that would make it worse"}
+      <span class="muted small" style="font-weight:400"> · recomputed with the same rules · information, not advice</span></h4>
+    <div class="table-wrap"><table class="data vtable"><thead><tr><th style="width:34%">Version</th><th>Verdict</th><th>What changes</th></tr></thead>
+      <tbody>${changed.map(variantRow).join("")}</tbody></table></div>` : ""}
+    ${r.debate_takeaway ? `<p class="takeaway"><b>Judge's takeaway.</b> ${esc(r.debate_takeaway)}</p>` : ""}`;
 }
 
 // ------------------------------------------------------------------ follow-up chat (grounded in this analysis)
@@ -703,7 +708,7 @@ function bindFollowup(it, root) {
 // ------------------------------------------------------------------ compare
 function renderComparePills() {
   const ps = ["Put $2,000 of new money into Bitcoin.", "Add $10,000 of new money to SPY.", "AI is the future. Put $15,000 of new money into NVIDIA.", "Put $10,000 of new money into Exxon (XOM) for the dividend."];
-  $("#compareSuggestions").innerHTML = ps.map((s) => `<button class="pill">${CHECK_SVG}${esc(s)}</button>`).join("");
+  $("#compareSuggestions").innerHTML = ps.map((s) => `<button class="pill">${esc(s)}</button>`).join("");
   $$("#compareSuggestions .pill").forEach((b) => b.addEventListener("click", () => { $("#compareRequest").value = b.textContent.trim(); compare(); }));
 }
 async function compare() {

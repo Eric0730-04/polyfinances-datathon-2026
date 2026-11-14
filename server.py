@@ -4,12 +4,15 @@ Run:  AWS_PROFILE=team10 .venv/bin/uvicorn server:app --port 8000
 """
 import copy
 import json
+import os
 import queue
 import threading
+import time
+from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -32,6 +35,32 @@ PERSONAS = {k: PERSONAS[k] for k in sorted(PERSONAS, key=lambda k: ORDER.index(k
 
 app = FastAPI(title="SecondLook")
 TRACES: dict = {}  # in-memory cache of this session's analyses (S3 holds the durable copy)
+
+# ---- public-deployment protection (enabled with RATE_LIMIT=1): per-visitor hourly quotas + global concurrency cap
+RATE_LIMIT = os.getenv("RATE_LIMIT") == "1"
+QUOTA = {"analyze": 30, "compare": 6, "chat": 60}
+_hits: dict = defaultdict(deque)
+_lock = threading.Lock()
+PIPELINES = threading.BoundedSemaphore(int(os.getenv("MAX_CONCURRENT_RUNS", "6")))
+
+
+def _limit(request: Request, bucket: str):
+    if not RATE_LIMIT:
+        return
+    ip = (request.headers.get("x-forwarded-for") or (request.client.host if request.client else "?")).split(",")[0].strip()
+    now = time.time()
+    with _lock:
+        q = _hits[(ip, bucket)]
+        while q and now - q[0] > 3600:
+            q.popleft()
+        if len(q) >= QUOTA[bucket]:
+            raise HTTPException(429, f"You've reached the demo limit ({QUOTA[bucket]} per hour). Please try again later.")
+        q.append(now)
+
+
+def _busy():
+    return {"title": "SecondLook is busy right now", "message": "Several analyses are already running on this demo server.",
+            "action": "Try again in a minute.", "retry": True, "kind": "busy"}
 app.mount("/static", StaticFiles(directory=ROOT / "web"), name="static")
 
 
@@ -42,6 +71,11 @@ def _dump(obj):
 @app.get("/")
 def index():
     return FileResponse(ROOT / "web" / "index.html")
+
+
+@app.get("/healthz")
+def healthz():
+    return {"ok": True}
 
 
 @app.get("/api/meta")
@@ -109,12 +143,18 @@ def _stream_run(persona, request):
     q: queue.Queue = queue.Queue()
 
     def work():
+        if not PIPELINES.acquire(timeout=20):
+            q.put(("error", _busy()))
+            q.put(None)
+            return
         try:
             trace = run(persona, request, on_step=lambda s: q.put(("step", {"label": s})))
             TRACES[trace["run_id"]] = trace
             q.put(("result", trace))
         except Exception as e:  # surface a readable error to the UI instead of hanging
             q.put(("error", friendly(e)))
+        finally:
+            PIPELINES.release()
         q.put(None)
 
     threading.Thread(target=work, daemon=True).start()
@@ -127,7 +167,8 @@ def _stream_run(persona, request):
 
 
 @app.post("/api/analyze")
-def analyze(body: AnalyzeIn):
+def analyze(body: AnalyzeIn, request: Request):
+    _limit(request, "analyze")
     persona = _resolve(body.persona_id, body.persona)
     if not body.request.strip():
         raise HTTPException(400, "Type an idea first, or pick one of the suggestions.")
@@ -142,7 +183,8 @@ class CompareIn(BaseModel):
 
 
 @app.post("/api/compare")
-def compare(body: CompareIn):
+def compare(body: CompareIn, request: Request):
+    _limit(request, "compare")
     people = dict(PERSONAS)
     for c in body.custom_personas[:3]:
         p = _resolve(None, c)
@@ -152,12 +194,17 @@ def compare(body: CompareIn):
         q: queue.Queue = queue.Queue()
 
         def one(pid):
+            if not PIPELINES.acquire(timeout=30):
+                q.put(("error", {"persona_id": pid, **_busy()}))
+                return
             try:
                 t = run(people[pid], body.request)
                 TRACES[t["run_id"]] = t
                 q.put(("result", {"persona_id": pid, "trace": t}))
             except Exception as e:
                 q.put(("error", {"persona_id": pid, **friendly(e)}))
+            finally:
+                PIPELINES.release()
 
         with ThreadPoolExecutor(len(people)) as ex:
             for pid in people:
@@ -243,7 +290,8 @@ class ChatIn(BaseModel):
 
 
 @app.post("/api/chat")
-def chat(body: ChatIn):
+def chat(body: ChatIn, request: Request):
+    _limit(request, "chat")
     if not body.question.strip():
         raise HTTPException(400, "Type a question first.")
     if len(body.question) > 600:
