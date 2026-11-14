@@ -412,6 +412,16 @@ function variantRow(c) {
       ${still.map((x) => `<div><span class="t-cond">Still:</span> ${esc(x)}</div>`).join("")}
       ${fresh.map((x) => `<div><span class="t-bad">New:</span> ${esc(x)}</div>`).join("")}</td></tr>`;
 }
+const KIND_LABEL = { funding: "paid with new money", swap: "a swap from the largest single position", fund: "a diversified fund instead",
+  goal: "a longer-horizon goal", amount: "a smaller amount" };
+function robustNote(t, changed) {
+  const all = t.toolbox.counterfactuals || [];
+  const same = all.filter((c) => !(c.changes_result ?? c.ceiling !== t.toolbox.rules.ceiling));
+  if (!all.length || changed.length) return "";
+  const kinds = [...new Set(same.map((c) => KIND_LABEL[c.kind] || c.variant))];
+  return `<p class="robust"><b>The verdict holds.</b> We also tested ${same.length} other version${same.length > 1 ? "s" : ""} of this idea
+    (${esc(kinds.join(", "))}); ${same.length > 1 ? "none of them changes" : "it doesn't change"} the answer (${esc(vinfo(t.toolbox.rules.ceiling).short.toLowerCase())}).</p>`;
+}
 function tabOverview(t) {
   const r = t.result;
   const changed = (t.toolbox.counterfactuals || []).filter((c) => c.changes_result ?? c.ceiling !== t.toolbox.rules.ceiling);
@@ -425,6 +435,7 @@ function tabOverview(t) {
       <span class="muted small" style="font-weight:400"> · recomputed with the same rules · information, not advice</span></h4>
     <div class="table-wrap"><table class="data vtable"><thead><tr><th style="width:34%">Version</th><th>Verdict</th><th>What changes</th></tr></thead>
       <tbody>${changed.map(variantRow).join("")}</tbody></table></div>` : ""}
+    ${robustNote(t, changed)}
     ${r.debate_takeaway ? `<p class="takeaway"><b>Judge's takeaway.</b> ${esc(r.debate_takeaway)}</p>` : ""}`;
 }
 

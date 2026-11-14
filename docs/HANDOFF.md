@@ -76,10 +76,13 @@ It never recommends what to buy.
 | Technical documentation, one-pager, video script | ✅ in `docs/` |
 | **Video recording** | ⏳ to do, script in `docs/video_script.md` |
 | **Team review of assumptions** (§5) | ⏳ to do |
-| Hosting a public demo link | ⏳ optional (currently runs locally) |
+| Public demo link | ✅ AWS Lambda function URL (see §4), redeploy with `scripts/deploy_aws.py` |
 | Confirm submission deadline and format | ⏳ to do |
 
 ## 4. How to run it
+
+**Live demo (no setup):** https://isybdeoz22wyqq4tccdermfuvq0zwugt.lambda-url.us-east-1.on.aws
+It runs on the event account, so it disappears when the event account is shut down.
 
 ```bash
 git clone https://github.com/Eric0730-04/polyfinances-datathon-2026 && cd polyfinances-datathon-2026

@@ -427,3 +427,5 @@ ol.plain li::marker { color: var(--muted); font-size: 12px; }
   font: 700 12px/1 var(--font); letter-spacing: .02em; }
 .ai-avatar { background: none; }
 .ai-avatar .mono { width: 34px; height: 34px; border-radius: 9px; font-size: 12.5px; }
+.robust { margin: 18px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); font-size: 13.5px; color: var(--ink-2); }
+.robust b { color: var(--ink); }

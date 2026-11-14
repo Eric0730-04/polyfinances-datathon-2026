@@ -7,6 +7,8 @@ SecondLook takes an investor's own idea, for example *"everyone is talking about
 > ⚠️ Educational simulation. No real transactions, no personalised financial advice, fictional personas, public data.
 > Past performance does not guarantee future results.
 
+**Live demo:** https://isybdeoz22wyqq4tccdermfuvq0zwugt.lambda-url.us-east-1.on.aws (public, HTTPS, hosted on AWS Lambda; the first load after a quiet period takes ~10 s)
+
 | Deliverable | Where |
 |---|---|
 | Prototype | `server.py` (FastAPI) + `web/` (UI) + `src/` (agents, toolbox, rules) |
@@ -49,6 +51,7 @@ Each component and the reason it exists are described in [`docs/technical_docume
 - **Amazon Bedrock Guardrails**:
   - blocks guaranteed-return claims and PII;
   - detects and logs trade-instruction language without blocking it.
+- **AWS Lambda + Amazon ECR**: the public demo is a container image (ECR) served by Lambda through an HTTPS function URL with response streaming. It scales to zero, and reserved concurrency caps cost. App Runner is blocked by the event's service control policy.
 - **Amazon S3**:
   - private, versioned, encrypted bucket;
   - one JSON audit trace per analysis, plus a copy of the input data.
@@ -66,6 +69,7 @@ export AWS_PROFILE=team10 AWS_DEFAULT_REGION=us-east-1
 .venv/bin/python scripts/check_aws.py        # identity + Bedrock smoke test
 .venv/bin/python scripts/setup_aws.py        # (once) S3 bucket + Bedrock Guardrail → aws_resources.json
 .venv/bin/uvicorn server:app --port 8000     # the prototype → http://localhost:8000
+.venv/bin/python scripts/deploy_aws.py       # (optional) build + deploy the public version (ECR + Lambda URL)
 ```
 
 Other entry points:
