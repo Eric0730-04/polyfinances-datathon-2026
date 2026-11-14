@@ -34,7 +34,7 @@ SecondLook takes an investor's own idea, for example *"everyone is talking about
   - a verdict (✔ consistent / ◐ with conditions / ✖ inconsistent / ? needs more information);
   - the reasons, and a **before → after** panel for the numbers that decided it;
   - tabs for rules & limits, portfolio X-ray, stress tests, the asset, the agent debate, and evidence & audit.
-- **Versions that would change the verdict** (smaller amount, new money, a swap, a diversified fund, a longer-horizon goal), computed with the same rules. When none changes it, the app says *"The verdict holds"*. *"When would this answer be different?"* sits in a collapsed section.
+- **Versions that would change the verdict** (smaller amount, new money, a swap, a diversified fund, a longer-horizon goal), computed with the same rules. When none changes it, the app says *"The verdict holds"*. The detailed reasons and conditions sit in a collapsed bar, *"Why this verdict, and what would change it"*.
 - **What-if simulator:** sliders for amount, asset, funding, goal, horizon and risk profile. The rules re-run instantly, with no AI involved.
 - **Follow-up chat** under each answer:
   - it answers only from that analysis, and its numbers are verified;

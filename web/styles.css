@@ -483,12 +483,19 @@ ol.plain li::marker { color: var(--muted); font-size: 12px; }
 .answer .flow { padding: 8px 24px 12px; border-bottom: 0; }
 .answer .meta-row { padding: 10px 24px; }
 
-/* restored after merge */
-details.more { margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
-details.more summary { cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--ink-2); list-style: none; }
-details.more summary::-webkit-details-marker { display: none; }
-details.more summary::before { content: "+"; display: inline-block; width: 16px; color: var(--muted); }
-details.more[open] summary::before { content: "–"; }
+/* Overview: "why / what would change it" collapsed behind an expandable bar at the bottom */
+.more { margin-top: 18px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.more > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; user-select: none; border-radius: 12px; }
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary:hover { background: var(--surface-2); }
+.more-label { font-weight: 700; font-size: 13.5px; color: var(--ink); }
+.more-count { font-size: 12px; color: var(--muted); }
+.more-chev { margin-left: auto; color: var(--ink-2); transition: transform .15s ease; }
+.more[open] > summary { border-bottom: 1px solid var(--line-2); border-radius: 12px 12px 0 0; }
+.more[open] .more-chev { transform: rotate(180deg); }
+.more .ov { padding: 14px 16px 16px; }
+
+/* restored after merge (no overlap with the overview bar) */
 .msg-ai.flash .answer { animation: flash 1.4s ease-out; }
 @keyframes flash { 0% { box-shadow: 0 0 0 3px rgba(37, 99, 235, .45); } 100% { box-shadow: var(--shadow); } }
 .node .nd { flex: none; align-self: center; }
