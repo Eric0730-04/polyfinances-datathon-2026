@@ -81,6 +81,10 @@ async function boot() {
   $("#newCheck").addEventListener("click", () => { showView("check"); $("#request").value = ""; $("#request").focus(); $("#askCard").scrollIntoView({ behavior: "smooth", block: "center" }); });
   $("#runBtn").addEventListener("click", () => ask());
   $("#request").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); } });
+  // controls start disabled in the HTML so nothing can be clicked before the app is ready (cold starts)
+  $("#request").disabled = false;
+  $("#runBtn").disabled = false;
+  document.body.dataset.ready = "1";
   $("#compareBtn").addEventListener("click", compare);
   $("#compareRequest").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); compare(); } });
   renderComparePills();
