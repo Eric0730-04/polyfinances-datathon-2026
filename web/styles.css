@@ -4,7 +4,7 @@
   --surface-2: #f8fafc;
   --ink: #0f172a;
   --ink-2: #475569;
-  --muted: #94a3b8;
+  --muted: #64748b;  /* was #94a3b8: too faint to read (fails WCAG contrast) */
   --line: #e5e7eb;
   --line-2: #f1f5f9;
   --primary: #2563eb;
@@ -429,11 +429,56 @@ ol.plain li::marker { color: var(--muted); font-size: 12px; }
 .ai-avatar .mono { width: 34px; height: 34px; border-radius: 9px; font-size: 12.5px; }
 .robust { margin: 18px 0 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); font-size: 13.5px; color: var(--ink-2); }
 .robust b { color: var(--ink); }
-details.more { margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
-details.more summary { cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--ink-2); list-style: none; }
-details.more summary::-webkit-details-marker { display: none; }
-details.more summary::before { content: "+"; display: inline-block; width: 16px; color: var(--muted); }
-details.more[open] summary::before { content: "–"; }
-.msg-ai.flash .answer { animation: flash 1.4s ease-out; }
-@keyframes flash { 0% { box-shadow: 0 0 0 3px rgba(37, 99, 235, .45); } 100% { box-shadow: var(--shadow); } }
-.node .nd { flex: none; align-self: center; }
+
+/* ================= modern / clearer layout (Nov 2026) ================= */
+/* question first, portfolio snapshot below */
+.ask-card { margin-top: 8px; }
+.ask-title { font-size: 22px; letter-spacing: -.025em; margin-bottom: 12px; }
+.ask-box { padding: 14px 16px 12px; border-radius: 18px; }
+.ask-box textarea { font-size: 16px; }
+.pills .pill { font-weight: 600; color: var(--ink); padding: 7px 14px; }
+.snapshot { margin-top: 34px; padding-top: 22px; border-top: 1px solid var(--line); }
+.snap-title { font-size: 15px; font-weight: 700; margin: 0 0 12px; color: var(--ink); letter-spacing: -.01em; }
+
+/* tiles: plain-language numbers */
+.tile .t-of { font-size: 13px; font-weight: 500; color: var(--ink-2); letter-spacing: 0; margin-left: 4px; }
+.tile .t-sub { display: flex; align-items: center; gap: 6px; }
+.hint { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line); font-size: 10.5px; font-weight: 700; color: var(--ink-2); cursor: help; }
+
+/* holdings: sorted bar list instead of a treemap */
+.hbars { padding: 4px 18px 14px; display: flex; flex-direction: column; }
+.hb-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(60px, 1fr) 74px 128px; gap: 12px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line-2); }
+.hb-row:last-child { border-bottom: 0; }
+.hb-name { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.hb-name b { font-size: 13px; }
+.hb-name span { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hb-track { height: 8px; background: var(--line-2); border-radius: 99px; overflow: hidden; }
+.hb-fill { height: 100%; background: var(--primary); border-radius: 99px; opacity: .85; }
+.hb-val { text-align: right; font-weight: 700; font-size: 13px; display: flex; flex-direction: column; line-height: 1.2; }
+.hb-val span { font-size: 11px; font-weight: 500; color: var(--muted); }
+.hb-row .rx { justify-self: start; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px; color: var(--ink); white-space: nowrap; }
+@media (max-width: 1280px) { .hb-row { grid-template-columns: minmax(0, 1.4fr) minmax(40px, 1fr) 64px; } .hb-row .rx { display: none; } }
+
+/* verdict: badge + headline on the left, key before/after numbers on the right */
+.answer .v-head { grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; padding: 22px 24px 20px;
+  border-top: 4px solid var(--vc); background: linear-gradient(180deg, var(--vbg) 0, var(--surface) 110px); }
+.answer .v-head.no-kn { grid-template-columns: 1fr; }
+@media (max-width: 1000px) { .answer .v-head { grid-template-columns: 1fr; } }
+.vbadge { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #fff; background: var(--vc); padding: 4px 11px 4px 7px; border-radius: 999px; }
+.vbadge svg { width: 16px; height: 16px; }
+.answer .v-title { font-size: 22px; line-height: 1.25; margin: 12px 0 8px; }
+.answer .v-sum { font-size: 14.5px; line-height: 1.6; }
+.kn { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px 6px; }
+.kn-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.kn-row { padding: 8px 0; border-bottom: 1px solid var(--line-2); }
+.kn-row:last-child { border-bottom: 0; }
+.kn-label { font-size: 12.5px; color: var(--ink-2); line-height: 1.3; }
+.kn-val { display: flex; align-items: baseline; gap: 6px; margin-top: 2px; font-size: 19px; letter-spacing: -.02em; }
+.kn-b { color: var(--muted); font-weight: 600; font-size: 15px; }
+.kn-arrow { color: var(--muted); font-size: 14px; }
+.kn-bad { color: var(--bad); font-weight: 800; } .kn-warn { color: #b45309; font-weight: 800; } .kn-ok { color: var(--ok); font-weight: 800; }
+.kn-lim { font-size: 11.5px; color: var(--muted); }
+/* agent pipeline: kept (it is the explainability story) but secondary, under the verdict */
+.flow-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 12px 24px 0; border-top: 1px solid var(--line-2); }
+.answer .flow { padding: 8px 24px 12px; border-bottom: 0; }
+.answer .meta-row { padding: 10px 24px; }

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="/static/vendor/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -36,15 +36,12 @@
     <section class="view" id="view-check">
       <header class="page-head">
         <div>
-          <div class="crumb">Investor</div>
+          <div class="crumb" id="pCrumb">Investor</div>
           <h1 id="pTitle"></h1>
           <div class="tags" id="pTags"></div>
         </div>
         <div class="page-actions"><span class="chip-badge">Powered by Amazon Bedrock</span></div>
       </header>
-
-      <div class="tiles" id="tiles"></div>
-      <div class="grid-2" id="dash"></div>
 
       <div class="ask-card" id="askCard">
         <div class="ask-title" id="askTitle">Ask SecondLook about an idea</div>
@@ -60,6 +57,12 @@
       </div>
 
       <div id="thread" class="thread"></div>
+
+      <div class="snapshot">
+        <h2 class="snap-title" id="snapTitle">Portfolio today</h2>
+        <div class="tiles" id="tiles"></div>
+        <div class="grid-2" id="dash"></div>
+      </div>
     </section>
 
     <section class="view hidden" id="view-compare">
