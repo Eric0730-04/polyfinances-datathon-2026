@@ -122,16 +122,44 @@ function selectPersona(pid) {
   $$(".persona-item").forEach((el) => el.addEventListener("click", () => { showView("check"); selectPersona(el.dataset.pid); }));
   $("#pTitle").innerHTML = `<div class="avatar lg" style="background:${pcolor(p)}">${initials(p)}</div>${esc(p.name)}, ${p.age}`;
   const hz = p.goals.filter((g) => g.horizon_years > 0).map((g) => (g.horizon_note || "").match(/(\d+[-–]\d+ years|\d+ years or more)/)?.[0] || `${g.horizon_years} years`);
-  $("#pTags").innerHTML = [`${RISK[p.risk_tolerance]} risk`, ...hz.map((h) => `Horizon ${h}`), title(p.knowledge_level),
-    p.custom ? "Your investor" : p.official_persona ? "Official persona" : "Extra scenario", "Fictional"].map((t, i) => `<span class="tag ${i === 0 ? "blue" : ""}">${esc(t)}</span>`).join("");
+  // only the facts that change the answer; "official / fictional" moves to the small line above the name
+  $("#pTags").innerHTML = [`${RISK[p.risk_tolerance]} risk`, ...hz.map((h) => `${h} horizon`), `${title(p.knowledge_level)} investor`]
+    .map((t, i) => `<span class="tag ${i === 0 ? "blue" : ""}">${esc(t)}</span>`).join("");
+  $("#pCrumb").textContent = `Investor · ${p.custom ? "your investor" : p.official_persona ? "official persona" : "extra scenario"} · fictional`;
+  $("#snapTitle").textContent = `${p.name}'s portfolio today`;
   $("#askTitle").textContent = `What is ${p.name} thinking of doing?`;
   $("#request").placeholder = p.sample_requests[0];
-  $("#suggestions").innerHTML = p.sample_requests.map((s) => `<button class="pill">${esc(s)}</button>`).join("");
-  $$("#suggestions .pill").forEach((b) => b.addEventListener("click", () => ask(b.textContent.trim())));
+  $("#suggestions").innerHTML = p.sample_requests.map((s) => `<button class="pill" data-full="${esc(s)}" title="${esc(s)}">${esc(shortIdea(s))}</button>`).join("");
+  $$("#suggestions .pill").forEach((b) => b.addEventListener("click", () => ask(b.dataset.full)));
   renderTiles(p);
   renderDash(p);
   renderRail(p);
   renderThread();
+}
+
+// "Everyone is talking about Tesla. Move $60,000 from my XBB bond fund into TSLA." -> "TSLA · $60k from XBB"
+function shortIdea(s) {
+  const uni = state.meta?.universe || {};
+  const amt = s.match(/\$\s?([\d,]+)/);
+  const k = amt ? +amt[1].replace(/,/g, "") : null;
+  const money_ = k == null ? "" : k >= 1000 ? `$${+(k / 1000).toFixed(1)}k` : `$${k}`;
+  const found = [];  // tickers (or their names) in the order they appear
+  for (const [t, m] of Object.entries(uni)) {
+    if (t === "CASH") continue;
+    const base = t.replace(/\.TO$|-USD$/, "");
+    const nm = (m.name || "").split(/[ ,(]/)[0];
+    const re = new RegExp(`\\b(${base.replace(/[.-]/g, "\\$&")}${nm.length > 3 ? `|${nm}` : ""})\\b`, "i");
+    const hit = s.match(re);
+    if (hit && (hit[0] === hit[0].toUpperCase() || hit[0].toLowerCase() === nm.toLowerCase())) found.push([hit.index, base]);
+  }
+  found.sort((a, b) => a[0] - b[0]);
+  const names = [...new Set(found.map((f) => f[1]))];
+  if (!names.length) return s.length > 48 ? `${s.slice(0, 46)}…` : s;
+  const fromM = s.match(/from (?:my )?([A-Z][A-Z.]+)/);
+  const src = fromM ? fromM[1].replace(/\.TO$/, "") : null;
+  const target = names.filter((n) => n !== src).at(-1) || names.at(-1);
+  const how = /new money/i.test(s) ? "new money" : src ? `from ${src}` : /condo/i.test(s) ? "condo savings" : "";
+  return [target, [money_, how].filter(Boolean).join(" ")].filter(Boolean).join(" · ");
 }
 
 function mainGoal(p) {
@@ -145,17 +173,19 @@ function renderTiles(p) {
   const filled = Math.min(5, Math.round(used * 5));
   const liquid = p.holdings.filter((h) => ["cash", "cash_equivalent"].includes(state.meta.universe[h.ticker]?.asset_class)).reduce((s, h) => s + h.value_cad, 0);
   const minLiq = p.constraints.min_liquid_cad || 0;
+  const room = (g.allowed_max_risky - g.risky_share) * 100;
   $("#tiles").innerHTML = `
-    <div class="card tile"><div class="t-label">Risk budget · ${esc(g.label.split("(")[0].trim())}</div>
-      <div class="t-value">${pct(g.risky_share)} <span class="delta ${used > 1 ? "bad" : used > 0.85 ? "warn" : "good"}">${used > 1 ? "Over limit" : `${((g.allowed_max_risky - g.risky_share) * 100).toFixed(0)} pts below limit`}</span></div>
+    <div class="card tile"><div class="t-label">Risk used · ${esc(g.label.split("(")[0].trim())}</div>
+      <div class="t-value">${pct(g.risky_share)}<span class="t-of"> of ${pct(g.allowed_max_risky)} allowed</span></div>
       <div class="segbar">${[0, 1, 2, 3, 4].map((i) => `<span class="${i < filled ? (used > 1 ? "over" : "on") : ""}"></span>`).join("")}</div>
-      <div class="segbar-scale"><span>0%</span><span>limit ${pct(g.allowed_max_risky)} (S&amp;P 500 = 100%)</span></div></div>
+      <div class="t-sub"><span class="delta ${used > 1 ? "bad" : used > 0.85 ? "warn" : "good"}" style="margin-left:0">${used > 1 ? "Over the limit" : `${room.toFixed(0)} pts of room left`}</span>
+        <span class="hint" title="Risk is measured against the S&amp;P 500: 100% = as risky as holding only the S&amp;P 500.">?</span></div></div>
     <div class="card tile"><div class="t-label">Portfolio value</div><div class="t-value">${money(e.total_value_cad)}</div>
-      <div class="t-sub">${p.holdings.length} holdings · fictional</div></div>
-    <div class="card tile"><div class="t-label">Cash buffer</div><div class="t-value">${money(liquid)}</div>
-      <div class="t-sub">minimum required ${money(minLiq)}</div></div>
-    <div class="card tile"><div class="t-label">Past volatility</div><div class="t-value">${pct(p.baseline.risk.annual_volatility, 1)}</div>
-      <div class="t-sub">worst drop ${pct(p.baseline.risk.max_drawdown, 1)} · 2021–2026</div></div>`;
+      <div class="t-sub">${p.holdings.length} holdings</div></div>
+    <div class="card tile"><div class="t-label">Cash &amp; cash-like funds</div><div class="t-value">${money(liquid)}</div>
+      <div class="t-sub">needs at least ${money(minLiq)}</div></div>
+    <div class="card tile"><div class="t-label">Typical yearly swing</div><div class="t-value">±${pct(p.baseline.risk.annual_volatility, 1)}</div>
+      <div class="t-sub">worst drop ${pct(p.baseline.risk.max_drawdown, 1)} (2021–2026)</div></div>`;
 }
 
 function renderDash(p) {
@@ -164,11 +194,9 @@ function renderDash(p) {
     <div class="card"><div class="panel-head"><h3>Allocation</h3><span class="note">by asset class</span></div>
       <div class="donut-wrap"><div class="donut-box"><canvas id="dashDonut"></canvas></div>
       <div class="legend-list">${Object.entries(e.asset_class).map(([k, v]) => `<div><span><i style="background:${ACOLOR[k] || "#94a3b8"}"></i>${esc(title(k))}</span><b>${pct(v, 1)}</b></div>`).join("")}</div></div></div>
-    <div class="card"><div class="panel-head"><h3>Holdings</h3><span class="note">size = weight · colour = risk vs S&amp;P 500</span></div>
-      <div class="treemap" id="treemap"></div>
-      <div class="tm-legend">${RISKBAND.map(([, c, l]) => `<span><i style="background:${c}"></i>${l}</span>`).join("")}</div></div>`;
+    <div class="card"><div class="panel-head"><h3>Holdings</h3><span class="note">largest first · risk vs the S&amp;P 500</span></div>
+      <div class="hbars">${holdingBars(p)}</div></div>`;
   donut("dashDonut", e.asset_class);
-  treemap($("#treemap"), p);
 }
 
 function donut(id, data, cutout = "68%") {
@@ -183,33 +211,21 @@ function donut(id, data, cutout = "68%") {
   });
 }
 
-function treemap(el, p) {
+const RISKWORD = [[0.3, "Very low risk"], [0.9, "Lower than S&P 500"], [1.5, "Like the S&P 500"], [2.5, "Higher risk"], [99, "Much higher risk"]];
+// sorted bar list: easier to read than a treemap (every holding gets a label)
+function holdingBars(p) {
   const total = p.holdings.reduce((s, h) => s + h.value_cad, 0);
   const items = Object.values(p.holdings.reduce((m, h) => { (m[h.ticker] ||= { t: h.ticker, v: 0 }).v += h.value_cad; return m; }, {})).sort((a, b) => b.v - a.v);
-  const W = el.clientWidth || 600, H = el.clientHeight || 200;
-  const rects = squarify(items.map((i) => ({ ...i, a: (i.v / total) * W * H })), 0, 0, W, H);
-  el.innerHTML = rects.map((r) => {
-    const ru = state.meta.risk_units[r.t];
-    const col = RISKBAND.find(([lim]) => ru <= lim)[1];
-    return `<div class="tm-cell" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;background:${col}" title="${esc(p.holding_names[r.t])}: ${money(r.v)} · risk ${ru.toFixed(2)}× S&P 500">
-      ${r.w > 52 && r.h > 30 ? `<b>${esc(r.t)}</b>` : ""}${r.w > 70 && r.h > 46 ? `<span>${pct(r.v / total)} · ${ru.toFixed(1)}×</span>` : ""}</div>`;
+  const max = items[0]?.v || 1;
+  return items.map((i) => {
+    const ru = state.meta.risk_units[i.t];
+    const col = RISKBAND.find(([lim]) => ru <= lim)[1], word = RISKWORD.find(([lim]) => ru <= lim)[1];
+    return `<div class="hb-row" title="${esc(p.holding_names[i.t])}: ${money(i.v)} · ${ru.toFixed(2)}× as volatile as the S&amp;P 500">
+      <div class="hb-name"><b>${esc(i.t)}</b><span>${esc(p.holding_names[i.t])}</span></div>
+      <div class="hb-track"><div class="hb-fill" style="width:${(i.v / max) * 100}%"></div></div>
+      <div class="hb-val">${pct(i.v / total)}<span>${money(i.v)}</span></div>
+      <span class="rx" style="background:${col}">${word}</span></div>`;
   }).join("");
-}
-function squarify(items, x, y, w, h) {
-  const out = [];
-  const worst = (row, side) => { const s = row.reduce((a, r) => a + r.a, 0); const mx = Math.max(...row.map((r) => r.a)), mn = Math.min(...row.map((r) => r.a)); return Math.max((side * side * mx) / (s * s), (s * s) / (side * side * mn)); };
-  let rest = [...items];
-  while (rest.length) {
-    const side = Math.min(w, h);
-    const row = [rest[0]];
-    let i = 1;
-    while (i < rest.length && worst([...row, rest[i]], side) <= worst(row, side)) row.push(rest[i++]);
-    rest = rest.slice(row.length);
-    const s = row.reduce((a, r) => a + r.a, 0);
-    if (w >= h) { const rw = s / h; let yy = y; row.forEach((r) => { const rh = r.a / rw; out.push({ ...r, x, y: yy, w: rw, h: rh }); yy += rh; }); x += rw; w -= rw; }
-    else { const rh = s / w; let xx = x; row.forEach((r) => { const rw = r.a / rh; out.push({ ...r, x: xx, y, w: rw, h: rh }); xx += rw; }); y += rh; h -= rh; }
-  }
-  return out;
 }
 
 function renderRail(p) {
@@ -217,8 +233,7 @@ function renderRail(p) {
   const c = p.constraints || {}, org = c._origin || {};
   $("#rail").innerHTML = `
     <div class="rail-sec"><h3>Profile</h3><p>${esc(p.summary)}</p>
-      <dl class="kv"><dt>Objective</dt><dd>${esc(p.objective)}</dd><dt>Risk profile</dt><dd>${esc(RISK[p.risk_tolerance])}</dd>
-      <dt>Experience</dt><dd>${esc(title(p.knowledge_level))}</dd></dl></div>
+      <dl class="kv"><dt>Objective</dt><dd>${esc(p.objective)}</dd></dl></div>
     <div class="rail-sec"><h3>Goals <span class="note">risk vs limit</span></h3>
       ${b.goals.map((g) => { const sc = Math.max(g.allowed_max_risky, g.risky_share, 0.05) * 1.15; return `<div class="row" style="display:block">
         <div style="display:flex;justify-content:space-between;gap:8px"><span>${esc(g.label)}</span><span class="r">${money(g.value_cad)}</span></div>
@@ -227,10 +242,7 @@ function renderRail(p) {
     <div class="rail-sec"><h3>Limits &amp; preferences</h3>
       ${Object.entries(c).filter(([k]) => !k.startsWith("_")).map(([k, v]) => { const [lab, f] = CONSTRAINT[k] || [title(k), String]; const asm = /derived|assumption/i.test(org[k] || "");
         return `<div class="row" title="${esc(org[k] || "stated in the brief")}"><span>${esc(lab)}<span class="tg ${asm ? "tg-assumed" : "tg-stated"}">${asm ? "assumed" : "stated"}</span>${k.startsWith("pref_") ? '<span class="tg tg-pref">preference</span>' : ""}</span><span class="r">${esc(f(v))}</span></div>`; }).join("")}
-      <p class="small muted" style="margin-top:8px">"Assumed" = our reading of the brief, to confirm with the investor.</p></div>
-    <div class="rail-sec"><h3>Holdings <span class="note">risk vs S&amp;P 500</span></h3>
-      ${[...p.holdings].sort((a, z) => z.value_cad - a.value_cad).map((h) => { const ru = state.meta.risk_units[h.ticker]; const col = RISKBAND.find(([l]) => ru <= l)[1];
-        return `<div class="row"><span><b>${esc(h.ticker)}</b><span class="sub">${esc(p.holding_names[h.ticker])}</span></span><span class="r">${money(h.value_cad)}<span class="sub"><span class="rx" style="background:${col}">${ru.toFixed(2)}×</span> · ${pct(h.value_cad / total)}</span></span></div>`; }).join("")}</div>`;
+      <p class="small muted" style="margin-top:8px">"Assumed" = our reading of the brief, to confirm with the investor.</p></div>`;
 }
 
 // ------------------------------------------------------------------ SSE
@@ -288,36 +300,13 @@ function addDone(pid, request, trace, tab = null) {
   if (state.pid === pid) renderThread(item.id);
 }
 
-// Open a finished analysis (from Compare or History): switch view, reuse the thread item if it exists, then jump to it
-// after the page has rendered (an instant jump, so chart drawing can't cancel a smooth scroll).
-function openAnalysis(pid, request, trace) {
-  showView("check");
-  if (state.pid !== pid) selectPersona(pid);
-  let item = thread(pid).find((x) => x.trace?.run_id === trace.run_id);
-  if (!item) {
-    item = { id: `m${++state.seq}`, pid, request, status: "done", trace };
-    thread(pid).push(item);
-    addHistory(item);
-  }
-  renderThread();
-  jumpTo(item.id);
-}
-function jumpTo(id) {
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 16, behavior: "auto" });
-    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
-  }));
-}
-
 function addHistory(item) {
   state.history.unshift(item);
   $("#history").innerHTML = state.history.slice(0, 12).map((h) => { const v = vinfo(h.trace.result.verdict);
     return `<div class="h-item" data-h="${h.id}"><span class="dot" style="background:var(--${v.cls})"></span><span class="txt"><b>${esc(persona(h.pid).name)}</b> · ${esc(h.request)}</span></div>`; }).join("");
   $$(".h-item").forEach((el) => el.addEventListener("click", () => {
     const h = state.history.find((x) => x.id === el.dataset.h);
-    showView("check"); if (state.pid !== h.pid) selectPersona(h.pid); renderThread(); jumpTo(h.id);
+    showView("check"); selectPersona(h.pid); document.getElementById(h.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }));
 }
 
@@ -368,26 +357,22 @@ function flowHtml(trace, activeIdx = null) {
 }
 
 // ------------------------------------------------------------------ answer
-function goalLabel(trace, gid) {
-  const g = (trace.persona_snapshot?.goals || persona(trace.persona_id)?.goals || []).find((x) => x.id === gid);
-  return g ? g.label : gid;
-}
 function goalOfAction(trace) {
   const gid = trace.action?.goal_id;
   return (trace.toolbox?.rules.buckets_after || []).find((g) => g.goal_id === gid);
 }
 function answerHtml(it) {
   const t = it.trace, r = t.result, v = vinfo(r.verdict), a = t.action || {}, tool = t.toolbox;
-  const g = goalOfAction(t);
-  const head = `${flowHtml(t)}
-    <div class="v-head v-${v.cls}">
-      <div><div class="v-tagline"><span class="vtag">${v.label}</span>${r.confidence && r.confidence !== "n/a" ? `<span class="muted">${esc(title(r.confidence))} confidence</span>` : ""}</div>
+  const kn = tool ? keyNumbers(t) : "";
+  const head = `<div class="v-head v-${v.cls} ${kn ? "" : "no-kn"}">
+      <div><div class="v-tagline"><span class="vbadge">${ICON[v.cls]}${v.label}</span>${r.confidence && r.confidence !== "n/a" ? `<span class="muted">${esc(title(r.confidence))} confidence</span>` : ""}</div>
         <div class="v-title">${esc(r.headline)}</div><p class="v-sum">${esc(r.plain_summary)}</p></div>
-      ${g ? budgetTile(g) : "<div></div>"}
+      ${kn}
     </div>
     ${r.verdict_adjustment ? `<p class="override">Rule override: ${esc(r.verdict_adjustment)}</p>` : ""}
+    <div class="flow-label">How the agents reached this</div>${flowHtml(t)}
     <div class="meta-row">
-      ${tool ? `<span>Interpreted as <b>${esc(a.action)} ${money(+a.amount_cad)} of ${esc(a.ticker)}</b> · funded by <b>${esc(a.funding === "new_money" ? "new money" : a.funding)}</b> · for <b>${esc(goalLabel(t, a.goal_id))}</b>${a.goal_named === false ? ' <span class="tg tg-assumed" title="The request did not name a goal; SecondLook used the longest-horizon goal. Say the goal in your request to change it.">assumed</span>' : ""}</span>` : r.understood ? `<span>Understood so far: <b>${esc(r.understood)}</b></span>` : ""}
+      ${tool ? `<span>Interpreted as <b>${esc(a.action)} ${money(+a.amount_cad)} of ${esc(a.ticker)}</b> · funded by <b>${esc(a.funding === "new_money" ? "new money" : a.funding)}</b> · goal <b>${esc(a.goal_id)}</b></span>` : r.understood ? `<span>Understood so far: <b>${esc(r.understood)}</b></span>` : ""}
       ${t.grounding?.summary ? `<span>Numbers verified <b>${esc(t.grounding.summary.replace(" figures traced to data", ""))}</b></span>` : ""}
       <span>Run <b>${esc(t.run_id)}</b> · ${t.elapsed_s}s</span></div>`;
   if (!tool) return `<div class="card answer">${head}</div>${followupHtml(it)}`;
@@ -399,12 +384,23 @@ function answerHtml(it) {
     <div class="chat" id="ch-${it.id}"></div></div>`;
 }
 
-function budgetTile(g) {
-  const used = g.risky_share / g.allowed_max_risky, over = used > 1, filled = Math.min(5, Math.round(used * 5));
-  return `<div class="btile"><div class="bt-label">${esc(g.label.split("(")[0].trim())} · risk budget used</div>
-    <div class="bt-val">${pct(used)} <span class="delta ${over ? "bad" : used > 0.85 ? "warn" : "good"}">${over ? "over limit" : "within limit"}</span></div>
-    <div class="segbar">${[0, 1, 2, 3, 4].map((i) => `<span class="${i < filled ? (over ? "over" : "on") : ""}"></span>`).join("")}</div>
-    <div class="segbar-scale"><span>${pct(g.risky_share)} of S&amp;P 500 risk</span><span>limit ${pct(g.allowed_max_risky)}</span></div></div>`;
+const cap1 = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+// before -> after for the numbers that decided the verdict: the goal's risk, then any limit that fails after the idea
+function keyNumbers(t) {
+  const rules = t.toolbox.rules, gid = t.action?.goal_id;
+  const gb = (rules.buckets_before || []).find((x) => x.goal_id === gid), ga = (rules.buckets_after || []).find((x) => x.goal_id === gid);
+  const rows = [];
+  if (ga) rows.push({ label: `${ga.label.split("(")[0].trim()} risk`, before: pct(gb ? gb.risky_share : 0), after: pct(ga.risky_share),
+    limit: `limit ${pct(ga.allowed_max_risky)}`, bad: ga.risky_share > ga.allowed_max_risky + 1e-9 });
+  const failed = (rules.constraints || []).filter((c) => !c.passed).sort((a, b) => (b.blocking - a.blocking));
+  failed.slice(0, 3 - rows.length).forEach((c) => rows.push({
+    label: cap1(c.rule.replace(/^Preference: /, "").replace(/ \(.*\)$/, "")), before: fmtVal(c.before), after: fmtVal(c.after),
+    limit: c.severity === "soft" ? "preference" : "hard limit", bad: c.blocking, soft: c.severity === "soft" }));
+  if (!rows.length) return "";
+  return `<div class="kn"><div class="kn-title">Before → after this idea</div>${rows.map((x) => `<div class="kn-row">
+      <div class="kn-label">${esc(x.label)}</div>
+      <div class="kn-val"><span class="kn-b">${esc(x.before)}</span><span class="kn-arrow">→</span><b class="${x.bad ? "kn-bad" : x.soft ? "kn-warn" : "kn-ok"}">${esc(x.after)}</b></div>
+      <div class="kn-lim">${esc(x.limit)}</div></div>`).join("")}</div>`;
 }
 function drawGauge(it) {
   const g = goalOfAction(it.trace), el = document.getElementById(`g-${it.id}`);
@@ -454,15 +450,15 @@ function tabOverview(t) {
   const changed = (t.toolbox.counterfactuals || []).filter((c) => c.changes_result ?? c.ceiling !== t.toolbox.rules.ceiling);
   const better = changed.filter((c) => (c.direction || "better") === "better");
   const ol = (xs) => `<ol class="plain">${(xs || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ol>`;
-  return `<div><h4 class="h">Why</h4>${ol(r.key_reasons)}</div>
+  return `<div class="ov">
+      <div><h4 class="h">Why</h4>${ol(r.key_reasons)}</div>
+      <div><h4 class="h">What would change this answer</h4>${ol(r.no_longer_valid_if)}</div>
+    </div>
     ${changed.length ? `<h4 class="h" style="margin-top:22px">${better.length ? "Versions of this idea that would change the verdict" : "Versions that would make it worse"}
       <span class="muted small" style="font-weight:400"> · recomputed with the same rules · information, not advice</span></h4>
     <div class="table-wrap"><table class="data vtable"><thead><tr><th style="width:34%">Version</th><th>Verdict</th><th>What changes</th></tr></thead>
       <tbody>${changed.map(variantRow).join("")}</tbody></table></div>` : ""}
     ${robustNote(t, changed)}
-    ${(r.no_longer_valid_if || []).length ? `<details class="more"><summary>When would this answer be different?</summary>
-      <p class="small muted" style="margin:6px 0 4px">Conditions about the investor or the market under which the conclusion would no longer hold. They describe the analysis, they are not suggestions.</p>
-      ${ol(r.no_longer_valid_if)}</details>` : ""}
     ${r.debate_takeaway ? `<p class="takeaway"><b>Judge's takeaway.</b> ${esc(r.debate_takeaway)}</p>` : ""}`;
 }
 
@@ -766,7 +762,7 @@ async function compare() {
         ${g ? `<div class="small muted">Goal risk ${pct(g.risky_share)} vs limit ${pct(g.allowed_max_risky)}</div>` : ""}
         <ul>${(r.key_reasons || []).slice(0, 3).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
         <button class="link" data-open="${p.id}">Open full analysis →</button>`;
-      el.querySelector("[data-open]").addEventListener("click", () => openAnalysis(p.id, req, t));
+      el.querySelector("[data-open]").addEventListener("click", () => { showView("check"); selectPersona(p.id); addDone(p.id, req, t); });
     });
   } catch (e) { $("#compareGrid").innerHTML = errorCard(e.f || { title: "Comparison failed", technical: String(e) }); }
   finally { $("#compareBtn").disabled = false; }
@@ -838,7 +834,7 @@ function renderBuilder() {
         <div class="card b-sec"><h3>Limits &amp; preferences <span class="note">leave blank for none</span></h3>
           <div class="b-grid"><label>Minimum cash ($)<input data-c="min_liquid_cad" type="number" min="0" step="1000" value="${c.min_liquid_cad ?? ""}"></label>
             <label>Max in one stock / crypto (%)<input data-c="max_single_position_pct" type="number" min="0" max="100" value="${c.max_single_position_pct ?? ""}"></label>
-            <label>Max in crypto (%)<input data-c="max_crypto_pct" type="number" min="0" max="100" value="${c.exclude_crypto ? "" : c.max_crypto_pct ?? ""}" ${c.exclude_crypto ? 'disabled placeholder="no crypto at all"' : ""}></label>
+            <label>Max in crypto (%)<input data-c="max_crypto_pct" type="number" min="0" max="100" value="${c.max_crypto_pct ?? ""}"></label>
             <label>Max in one sector (%)<input data-c="max_sector_pct" type="number" min="0" max="100" value="${c.max_sector_pct ?? ""}"></label></div>
           ${[["exclude_fossil_fuels", "Avoid fossil fuels and companies excluded by an ESG screen"], ["exclude_crypto", "No crypto at all"], ["avoid_volatile_names", "Prefer stable companies (flag single stocks over 2× S&P 500 volatility)"]]
             .map(([k, l]) => `<label class="check"><input type="checkbox" data-cb="${k}" ${c[k] ? "checked" : ""}> ${l}</label>`).join("")}</div>
@@ -881,11 +877,7 @@ function bindBuilder() {
   $$("[data-g][data-k=label]", B).forEach((i) => i.addEventListener("change", renderBuilder));
   $$("[data-h]", B).forEach((i) => i.addEventListener("input", () => { draft.holdings[+i.dataset.h][i.dataset.k] = i.value; schedulePreview(); }));
   $$("[data-c]", B).forEach((i) => i.addEventListener("input", () => { draft.constraints[i.dataset.c] = i.value === "" ? null : +i.value; schedulePreview(); }));
-  $$("[data-cb]", B).forEach((i) => i.addEventListener("change", () => {
-    draft.constraints[i.dataset.cb] = i.checked;
-    if (i.dataset.cb === "exclude_crypto") { if (i.checked) draft.constraints.max_crypto_pct = null; renderBuilder(); return; }
-    schedulePreview();
-  }));
+  $$("[data-cb]", B).forEach((i) => i.addEventListener("change", () => { draft.constraints[i.dataset.cb] = i.checked; schedulePreview(); }));
   $("[data-addg]", B)?.addEventListener("click", () => { draft.goals.push({ label: "", horizon_years: 5 }); renderBuilder(); });
   $("[data-addh]", B)?.addEventListener("click", () => { draft.holdings.push({ ticker: "SPY", value_cad: 5000, goal: `g${draft.goals.length}` }); renderBuilder(); });
   $$("[data-delg]", B).forEach((b) => b.addEventListener("click", () => {
@@ -950,6 +942,4 @@ function renderMethod() {
     <h3>7. Limits</h3><p>Rules of thumb, not suitability regulation · one action at a time · volatility over one 5-year window · ESG screen covers US stocks only · fictional investors · simulation only.</p></div>`;
 }
 
-let resizeT;
-window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(() => { const p = persona(); if (p && $("#treemap")) treemap($("#treemap"), p); }, 150); });
 boot();
