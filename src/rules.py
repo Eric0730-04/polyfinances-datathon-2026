@@ -11,6 +11,13 @@ the answer" is backed by numbers.
 """
 from src.analytics import UNIVERSE, apply_action, check_constraints, goal_buckets
 
+
+def _f(v):
+    """Human format for check values: fractions as %, dollar amounts as $."""
+    if isinstance(v, (int, float)):
+        return f"${v:,.0f}" if abs(v) > 1.5 else f"{v * 100:.1f}%"
+    return str(v)
+
 VERDICTS = ["CONSISTENT", "CONSISTENT_WITH_CONDITIONS", "INCONSISTENT"]  # order = increasing caution
 SPECIAL = "INSUFFICIENT_DATA"
 
@@ -31,7 +38,7 @@ def evaluate(persona, holdings, action):
 
     for c in checks:
         if c["blocking"]:
-            cap("INCONSISTENT", f"Hard constraint breached: {c['rule']} (before {c['before']}, after {c['after']})")
+            cap("INCONSISTENT", f"Hard constraint breached: {c['rule']} (before {_f(c['before'])}, after {_f(c['after'])})")
     if warnings:
         cap("INCONSISTENT", "; ".join(warnings))
     for gid in {action.get("goal_id"), action.get("funding_goal_id")} - {None}:
@@ -54,10 +61,10 @@ def evaluate(persona, holdings, action):
         if not c["passed"] and not c["blocking"]:
             if c["severity"] == "soft" and c["status"].startswith("worsened"):
                 cap("CONSISTENT_WITH_CONDITIONS", f"Soft check (preference) worsened: {c['rule']} "
-                                                  f"({c['before']} -> {c['after']})")
+                                                  f"({_f(c['before'])} -> {_f(c['after'])})")
             else:
                 cap("CONSISTENT_WITH_CONDITIONS", f"Pre-existing breach not created by this action: {c['rule']} "
-                                                  f"({c['status']}: {c['before']} -> {c['after']})")
+                                                  f"({c['status']}: {_f(c['before'])} -> {_f(c['after'])})")
     return {"after": after, "warnings": warnings, "constraints": checks, "ceiling": ceiling,
             "ceiling_reasons": reasons, "buckets_before": list(gb.values()), "buckets_after": list(ga.values())}
 

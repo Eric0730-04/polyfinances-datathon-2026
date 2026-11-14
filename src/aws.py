@@ -36,6 +36,19 @@ def save_trace(trace: dict) -> str | None:
     return f"s3://{bucket}/{key}"
 
 
+def load_trace(run_id: str) -> dict | None:
+    """Find and load an audit record from S3 by run id."""
+    bucket = _cfg()["bucket"]
+    if not bucket:
+        return None
+    pages = s3().get_paginator("list_objects_v2").paginate(Bucket=bucket, Prefix="traces/")
+    for page in pages:
+        for o in page.get("Contents", []):
+            if o["Key"].endswith(f"/{run_id}.json"):
+                return json.loads(s3().get_object(Bucket=bucket, Key=o["Key"])["Body"].read())
+    return None
+
+
 def upload_dir(path: Path, prefix: str) -> list[str]:
     bucket = _cfg()["bucket"]
     if not bucket:

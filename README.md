@@ -9,7 +9,7 @@ SecondLook takes an investor's own idea, for example *"everyone is talking about
 
 | Deliverable | Where |
 |---|---|
-| Prototype | `app.py` (Streamlit) + `src/` |
+| Prototype | `server.py` (FastAPI) + `web/` (UI) + `src/` (agents, toolbox, rules) |
 | Technical documentation | [`docs/technical_documentation.md`](docs/technical_documentation.md) |
 | Evaluation results | [`docs/evaluation.md`](docs/evaluation.md) |
 | One-pager | [`docs/one_pager.md`](docs/one_pager.md) |
@@ -64,16 +64,16 @@ export AWS_PROFILE=team10 AWS_DEFAULT_REGION=us-east-1
 
 .venv/bin/python scripts/check_aws.py        # identity + Bedrock smoke test
 .venv/bin/python scripts/setup_aws.py        # (once) S3 bucket + Bedrock Guardrail → aws_resources.json
-.venv/bin/streamlit run app.py               # the prototype
+.venv/bin/uvicorn server:app --port 8000     # the prototype → http://localhost:8000
 ```
 
 Other entry points:
 
 ```bash
-.venv/bin/python -m pytest -q                                   # 29 deterministic tests (no AWS needed)
+.venv/bin/python -m pytest -q                                   # 32 deterministic tests (no AWS needed)
 .venv/bin/python scripts/run_case.py robert "Move \$60,000 from XBB into TSLA"   # one analysis from the CLI
 .venv/bin/python scripts/evaluate.py --repeats 2                # end-to-end evaluation → docs/evaluation.md
-.venv/bin/python scripts/fetch_supplemental.py                  # refresh ETF sector weights (supplemental data)
+.venv/bin/python scripts/fetch_supplemental.py                  # refresh supplemental public data (see Data)
 ```
 
 Configuration:
@@ -81,12 +81,19 @@ Configuration:
 - `SECONDLOOK_BUCKET` and `SECONDLOOK_GUARDRAIL_ID` override `aws_resources.json`.
 - The app runs without S3 or the Guardrail; the UI then says they are "not configured".
 
+Demo links:
+- `/?persona=robert&q=...` runs an analysis directly.
+- `/?compare=...` compares all investors.
+- `/?run=<run_id>` re-opens any past analysis from its S3 audit record.
+
 ## Data
 
 | Data | Source | Notes |
 |---|---|---|
 | `data/starter/` | Official AlphaForge starter pack: Yahoo Finance (yfinance), Bank of Canada Valet, FRED | 2021-11-12 to 2026-11-12. Terms in `data/starter/sources_metadata.csv` |
 | `data/supplemental/etf_sector_weights.json` | Yahoo fund sector breakdown via yfinance | Snapshot; look-through for XIU.TO, SPY, QQQ, ESGV |
+| `data/supplemental/esg_screen.json` | **SEC EDGAR Form N-PORT**: Vanguard ESG U.S. Stock ETF holdings as of 2026-05-31 (filed 2026-07-29) | Which US stocks pass a published ESG/controversy screen (e.g. XOM and JNJ do not) |
+| `data/supplemental/fundamentals.json` | Yahoo quote summary via yfinance | Company snapshot (size, margins, leverage, growth, listing age); context only |
 | `personas/` | Fictional, based on the official brief | Amira, Mateo, Robert + optional Maya |
 
 Processing is documented in the technical documentation §4:
@@ -99,7 +106,8 @@ Processing is documented in the technical documentation §4:
 ## Repository layout
 
 ```
-app.py                  Streamlit UI
+server.py               FastAPI: JSON + streaming (SSE) API, serves the UI
+web/                    UI (HTML/CSS/JS, no framework)
 src/universe.py         31-asset starter universe + look-through metadata (assumptions labelled)
 src/analytics.py        deterministic toolbox (all numbers)
 src/rules.py            verdict ceiling + computed counterfactuals

@@ -61,6 +61,8 @@ def provenance():
         "fx": "Bank of Canada Valet FXUSDCAD, carried forward over Canadian holidays",
         "macro": "Bank of Canada Valet and FRED (starter pack macro_rates.csv)",
         "etf_sectors": f"Yahoo fund sector breakdown, fetched {etf_sectors().get('fetched_at_utc', 'n/a')} (supplemental)",
+        "esg_screen": "SEC EDGAR Form N-PORT, Vanguard ESG U.S. Stock ETF holdings as of 2026-05-31 (filed 2026-07-29)",
+        "fundamentals": "Yahoo quote summary via yfinance, snapshot (context only)",
         "window": f"{meta['first_date']} to {meta['last_date']}",
         "currency": "all values in CAD",
         "frequency": "weekly (Friday) closes for risk metrics; calendars aligned by carrying prices forward up to 4 days",
@@ -97,6 +99,10 @@ def security_metrics(ticker: str) -> dict:
         "window": f"{s.index[0].date()} to {s.index[-1].date()}",
         "terms": "CAD, total return (adj_close); historical only, not a forecast",
         "diversified_fund": m["diversified"], "note": m.get("note"),
+        "company_snapshot": ({k: v for k, v in m["fundamentals"].items() if k != "business_summary"}
+                             if m.get("fundamentals") else None),
+        "company_snapshot_source": "Yahoo quote summary via yfinance, snapshot (supplemental)" if m.get("fundamentals") else None,
+        "esg_screen": m.get("esg_screen"),
     }
 
 
@@ -402,6 +408,13 @@ def check_constraints(persona: dict, before: list[dict], after: list[dict]) -> l
         add(f"Preference: no more weight in single securities over {lim}x S&P 500 volatility", hv(after) <= hv(before) + 1e-6,
             hv(before), hv(after), "share of portfolio in high-volatility single names", severity="soft",
             origin=origin("pref_max_security_risk_units"))
+    if c.get("pref_pass_esg_screen"):
+        fail = lambda hs: round(sum(h["value_cad"] for h in hs if UNIVERSE[h["ticker"]].get("esg_screen") == "not held")  # noqa: E731
+                                / total_value(hs), 4)
+        add("Preference: no more weight in US stocks excluded by the ESGV screen (SEC N-PORT evidence)",
+            fail(after) <= fail(before) + 1e-6, fail(before), fail(after),
+            "screen excludes fossil fuels, weapons, controversies, etc.; exclusion reason not disclosed", severity="soft",
+            origin=origin("pref_pass_esg_screen"))
     if c.get("excluded_sectors"):
         ex = set(c["excluded_sectors"])
         direct = lambda hs: round(sum(h["value_cad"] for h in hs if not UNIVERSE[h["ticker"]]["diversified"]  # noqa: E731
@@ -423,9 +436,15 @@ def esg_view(persona: dict, holdings: list[dict]) -> dict | None:
         return None
     ex = set(persona.get("constraints", {}).get("excluded_sectors", []))
     direct = sorted({h["ticker"] for h in holdings if UNIVERSE[h["ticker"]].get("starter_sector") in ex})
+    singles = sorted({h["ticker"] for h in holdings if not UNIVERSE[h["ticker"]]["diversified"]
+                      and UNIVERSE[h["ticker"]]["asset_class"] == "equity"})
+    screen = {t: UNIVERSE[t].get("esg_screen", "n/a") for t in singles}
     return {"screen": f"Exclude GICS sectors: {', '.join(sorted(ex)) or 'none'} (fossil-fuel proxy, assumption)",
             "direct_holdings_in_excluded_sectors": direct,
             "energy_lookthrough_share_of_portfolio": exposures(holdings)["energy_lookthrough_share_of_portfolio"],
-            "controversy_status": "NOT VERIFIED: the dataset has no ESG scores or controversy data; would require company "
-                                  "sustainability reports, SEDAR+/EDGAR filings or a licensed ESG provider",
+            "esgv_screen_by_holding": screen,
+            "esgv_screen_source": "SEC N-PORT, Vanguard ESG U.S. Stock ETF holdings as of 2026-05-31 (filed 2026-07-29)",
+            "controversy_status": "PARTIAL: US stocks checked against the ESGV screen (public SEC filing): held = passed, "
+                                  "not held = excluded for an undisclosed reason. Canadian stocks are NOT VERIFIED (no "
+                                  "public screen in our data); controversies themselves are not scored.",
             "esgv_note": UNIVERSE["ESGV"]["note"]}

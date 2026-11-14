@@ -50,6 +50,12 @@ def etf_sectors():
     return json.loads(f.read_text()) if f.exists() else {"etfs": {}}
 
 
+@lru_cache(maxsize=None)
+def supplemental(name):
+    f = SUPPLEMENTAL / f"{name}.json"
+    return json.loads(f.read_text()) if f.exists() else {}
+
+
 @lru_cache(maxsize=1)
 def load_universe() -> dict:
     df = pd.read_csv(STARTER / "assets_universe.csv")
@@ -73,6 +79,10 @@ def load_universe() -> dict:
             else:
                 meta["sectors"] = {r.sector: 1.0}
                 meta["sector_source"] = "starter dataset (GICS)"
+        if r.ticker in supplemental("fundamentals").get("companies", {}):
+            meta["fundamentals"] = supplemental("fundamentals")["companies"][r.ticker]
+        if r.ticker in supplemental("esg_screen").get("tickers", {}):
+            meta["esg_screen"] = supplemental("esg_screen")["tickers"][r.ticker]
         uni[r.ticker] = meta
     uni[CASH] = {"name": "Cash / high-interest savings (CAD)", "asset_class": "cash", "listing_currency": "CAD",
                  "market": "n/a", "starter_sector": "Cash", "diversified": True, "geography": {"CA": 1.0},

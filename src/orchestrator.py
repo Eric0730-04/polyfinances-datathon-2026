@@ -1,6 +1,7 @@
 """Orchestrates the SecondLook pipeline and records a complete audit trace."""
 from __future__ import annotations
 
+import re
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -30,6 +31,20 @@ class Trace:
             s["note"] = note
         self.data["steps"].append(s)
         return output
+
+
+def _followup(a, errs, persona):
+    """A targeted question for the missing piece (deterministic, so it is always answerable)."""
+    if any("override" in x.lower() or "ignore" in x.lower() for x in a.get("ambiguities", [])):
+        return "SecondLook's rules can't be switched off. What would you like to check, as a normal request?"
+    if any(e.startswith("Unknown ticker") or "out of scope" in e for e in errs):
+        return ("Which security did you mean? This prototype covers the 31 assets of the official starter universe "
+                "(e.g. RY.TO, TSLA, NVDA, SPY, XBB.TO, ESGV, BTC-USD).")
+    if any("amount" in e.lower() for e in errs):
+        return f"How much, in Canadian dollars, and is it new money or from an existing holding?"
+    if any(e.startswith("Unknown goal") for e in errs):
+        return "Which goal is this money for: " + ", ".join(g["label"] for g in persona["goals"]) + "?"
+    return "Could you add the missing details: which security, how much, and where the money comes from?"
 
 
 def _validate_action(a, persona):
@@ -68,10 +83,14 @@ def run(persona: dict, request: str, action_override: dict | None = None, on_ste
         parsed, meta = agents.intake(request, persona, UNIVERSE_BRIEF)
         action = tr.step("intake", "llm", parsed, meta)
     errs = _validate_action(action, persona)
+    if re.search(r"\bnew money\b|\bfresh money\b", request, re.I) and action.get("funding") != "new_money" and not errs:
+        tr.step("validator", "deterministic", {"correction": f"request says 'new money': funding {action.get('funding')} -> new_money"})
+        action["funding"], action["funding_goal_id"] = "new_money", None
     if errs:
         tr.step("validator", "deterministic", {"errors": errs})
         tr.data["result"] = {"verdict": "INSUFFICIENT_DATA", "headline": "I need more details before taking a second look.",
-                             "plain_summary": " ".join(errs + action.get("ambiguities", [])), "confidence": "low"}
+                             "plain_summary": " ".join(errs + action.get("ambiguities", [])), "confidence": "low",
+                             "followup_question": _followup(action, errs, persona)}
         tr.data["elapsed_s"] = round(time.time() - t0, 1)
         return _finish(tr)
 

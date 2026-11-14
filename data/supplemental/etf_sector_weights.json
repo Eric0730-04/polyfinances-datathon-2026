@@ -1,6 +1,6 @@
 {
   "source": "Yahoo Finance via yfinance funds_data.sector_weightings",
-  "fetched_at_utc": "2026-11-14T17:11:06+00:00",
+  "fetched_at_utc": "2026-11-14T18:22:21+00:00",
   "mapping": "Yahoo sector names mapped to GICS sector names used in assets_universe.csv",
   "etfs": {
     "XIU.TO": {

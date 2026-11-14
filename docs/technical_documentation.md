@@ -53,7 +53,7 @@ flowchart TD
     G --> J[Judge / explainer agent<br/>verdict, reasons, conditions,<br/>facts / assumptions / fiction]
     J --> E{Rule ceiling enforcement<br/>judge can be stricter, never more permissive}
     E --> GR[Amazon Bedrock Guardrail<br/>no guaranteed returns, no trade instructions]
-    GR --> UI[Streamlit UI]
+    GR --> UI[Web UI<br/>FastAPI + live streaming]
     GR --> S3[(Amazon S3<br/>audit trace per run)]
     GC[Numeric grounding check<br/>every % and $ traced to data] --> UI
 ```
@@ -107,6 +107,8 @@ Provisioning is idempotent: `scripts/setup_aws.py`. Credentials are never stored
 | Policy rate, GoC 2y/10y, CPI (CA), US rates | Starter pack: Bank of Canada Valet, FRED | same window | Cash accrual, macro context, real cash yield |
 | Asset universe and GICS sectors | Starter pack `assets_universe.csv` | static | Sector of single stocks, asset class |
 | ETF sector weights: XIU.TO, SPY, QQQ, ESGV | **Supplemental**: Yahoo fund breakdown via yfinance | snapshot, see `data/supplemental/etf_sector_weights.json` | Sector concentration and ESG (Energy) look-through |
+| ESG screen for US stocks | **Supplemental**: SEC EDGAR Form N-PORT, Vanguard ESG U.S. Stock ETF (ESGV) schedule of investments | holdings as of 2026-05-31, filed 2026-07-29, so available before our as-of date | A held stock passed ESGV's index screens (fossil fuels, weapons, controversies…); a stock not held was excluded. In our universe, **XOM and JNJ are excluded**; the reason is not disclosed. Canadian stocks are not covered. |
+| Company fundamentals (20 stocks) | **Supplemental**: Yahoo quote summary via yfinance | snapshot at fetch date | Context for "established company / quality" (size, margins, leverage, growth, listing age). Never used as a forecast or in a rule. |
 | Personas and portfolios | **Fictional**, based on the official brief (Amira, Mateo, Robert) + one optional scenario (Maya) | n/a | Context |
 
 ### 4.2 Processing (`src/analytics.py`)
@@ -127,7 +129,7 @@ Provisioning is idempotent: `scripts/setup_aws.py`. Credentials are never stored
 - **CNQ.TO split row:** the 1.021 "split" on 2022-08-22 is probably a special distribution. We do not apply split rows, and CNQ is not used in personas.
 - **FRED values** are latest-vintage (revised), not as first published.
 - **ETF sector weights** are a single recent snapshot applied to the whole window.
-- **ESG data:** there are no ESG scores or controversy data. Controversy status is always reported as **"not verified"**.
+- **ESG data:** the starter pack has no ESG data. We added a public, verifiable proxy: membership in ESGV's holdings, from its SEC filing. It covers US stocks only, gives no reason for exclusions, and does not score controversies. Canadian stocks remain **"not verified"**.
 - **Five years** is one cycle. It includes 2022, when stocks and bonds fell together, but no deeper crisis.
 
 ---
@@ -164,6 +166,7 @@ Stated horizon ranges use their **lower bound** (conservative): Robert 3–5 →
 - Robert "values stability": no extra weight in single names over 2× S&P 500 volatility;
 - Mateo "little interest in speculation": no extra weight in single names over 3×;
 - Mateo's ESG look-through: indirect Energy exposure through funds should not increase.
+- Mateo's controversy preference: no more weight in US stocks excluded by the ESGV screen (SEC N-PORT evidence). For example, adding JNJ gives ◐.
 
 Every constraint shows its **origin**: *stated* in the brief, or *derived (assumption)*, for example Amira's 50% sector cap from "does not want to invest exclusively in technology". The UI marks derived constraints as assumptions to confirm with the investor.
 
@@ -199,7 +202,24 @@ Each variant is re-evaluated with the same rules.
 
 ---
 
-## 6. Explainability
+## 6. User interface
+
+`server.py` (FastAPI) streams each pipeline stage to the browser over Server-Sent Events. `web/` is a framework-free interface whose layout borrows two established patterns:
+- **Portfolio X-ray** (look-through allocation by asset class, sector, region and currency, before vs after);
+- **pre-trade compliance checks** (rules with severity: hard limit vs preference; pass, breach or pre-existing).
+
+There are three views:
+
+- **Check an idea**
+  - The investor profile sits beside the request.
+  - Live pipeline progress.
+  - The verdict, then: why it holds and what would change it; computed variants; pre-trade checks; the risk budget by goal; the X-ray; stress tests; a security and company snapshot with its ESG screen; the agent debate; evidence and audit.
+- **Compare investors:** the same idea for every persona, run in parallel.
+- **Method & data:** risk units, limits, verdict rules, sources, macro context, AWS services.
+
+When information is missing, the investor gets a **targeted follow-up question** and can answer it in place. Any past analysis can be re-opened from its S3 audit record with `/?run=<run_id>`.
+
+## 7. Explainability
 
 Every analysis shows:
 - the interpreted action;
@@ -235,7 +255,7 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
 
 ---
 
-## 7. Personas and what each one tests
+## 8. Personas and what each one tests
 
 | Persona | Brief's test | Example request | SecondLook result |
 |---|---|---|---|
@@ -250,7 +270,7 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
 
 ---
 
-## 8. Validation
+## 9. Validation
 
 1. **Deterministic tests** (`pytest`, 29 tests):
    - expected rule outcomes for every persona scenario;
@@ -290,7 +310,7 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
 
 ---
 
-## 9. Limitations
+## 10. Limitations
 
 - Rules are **simplified, documented assumptions**, not regulatory suitability rules. Horizon and tolerance limits are rules of thumb.
 - **Volatility is one risk indicator.** It misses tail and liquidity risk, and a 5-year window is one cycle.
@@ -300,9 +320,9 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
 - **LLM variability:** verdicts can differ between repeats (measured). The rule ceiling bounds the risk to "too cautious", never "too permissive".
 - **The guardrail's trade-instruction classifier over-triggers** on descriptive analysis, so it runs in detect-only mode. Blocked or flagged originals are kept in the audit trail.
 
-## 10. Improvements we would make next
+## 11. Improvements we would make next
 
-- Verified ESG and controversy evidence: issuer methodology pages, sustainability reports, SEDAR+/EDGAR, with citations.
+- Wider ESG evidence: Canadian ESG fund holdings, issuer methodology pages, sustainability reports and SEDAR+, with citations.
 - Multi-action plans, with the investor confirming derived constraints in a dialogue.
 - Bedrock Knowledge Base over regulatory education content (e.g. CIRO investor guides) to cite definitions.
 - Deployment behind authentication (App Runner or ECS) with CloudWatch metrics on verdict drift.

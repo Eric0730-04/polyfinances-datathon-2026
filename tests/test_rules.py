@@ -31,6 +31,8 @@ def act(t, amt, goal, funding="new_money", fgoal=None, a="buy"):
     ("mateo", act("XOM", 10000, "balanced"), "INCONSISTENT"),
     ("mateo", act("SPY", 20000, "balanced", "ESGV", "balanced"), "CONSISTENT_WITH_CONDITIONS"),
     ("mateo", act("ESGV", 10000, "balanced"), "CONSISTENT"),
+    ("mateo", act("JNJ", 8000, "balanced"), "CONSISTENT_WITH_CONDITIONS"),  # excluded by ESGV screen (SEC evidence)
+    ("mateo", act("MSFT", 2000, "balanced"), "CONSISTENT"),                 # passes ESGV screen
     # Maya: tolerance is not capacity
     ("maya", act("QQQ", 15000, "condo", "ZST.TO", "condo"), "INCONSISTENT"),
     ("maya", act("SPY", 3000, "retirement"), "CONSISTENT"),
@@ -118,3 +120,8 @@ def test_counterfactual_smaller_amount_for_robert_tsla():
 ])
 def test_enforce_ceiling(judge, ceiling, expected, adjusted):
     assert enforce(judge, ceiling) == (expected, adjusted)
+
+
+def test_esg_screen_evidence_loaded():
+    assert UNIVERSE["XOM"]["esg_screen"] == "not held" and UNIVERSE["AAPL"]["esg_screen"] == "held"
+    assert UNIVERSE["RY.TO"]["esg_screen"].startswith("not covered")

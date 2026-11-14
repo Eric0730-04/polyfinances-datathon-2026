@@ -33,6 +33,8 @@ def intake(request_text, persona, universe_brief):
             "funding = 'new_money' or the ticker sold to pay for it (e.g. 'CASH' when they say 'my cash', 'ZST.TO' or 'XBB.TO' when they name those funds); "
             "funding_goal_id = the goal whose money is used (e.g. 'condo' if they say 'my condo savings'). "
             "If they pay with cash and do not name a goal for the cash, use the goal that holds that cash. "
+            "If the request says 'new money' (or fresh savings, a bonus, extra money), funding MUST be 'new_money' and "
+            "funding_goal_id null; never take it from the emergency fund unless they explicitly say so. "
             "If the security is not in the universe or the amount is missing, set in_scope=false and explain in ambiguities.")
     payload = {"request": request_text,
                "goals": [{k: g[k] for k in ("id", "label", "horizon_years")} for g in persona["goals"]],
@@ -143,5 +145,6 @@ def judge(persona, action, bundle):
               'reinforce it), '
               '"variants": [{"variant": str (copy from counterfactuals), "rule_result": str (copy its computed ceiling), '
               '"comment": str}] (ONLY the computed counterfactuals, in the same order; empty list if none), '
-              '"facts": [str], "assumptions": [str], "fictional": [str], "limits": [str]}')
+              '"facts": [str], "assumptions": [str], "fictional": [str], '
+              '"limits": [str] (limitations of THIS ANALYSIS: data coverage, method, model uncertainty; not the investor\'s constraints)}')
     return _call(role, bundle, schema, temperature=0.1, max_tokens=3000)
