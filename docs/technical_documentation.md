@@ -278,8 +278,9 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
    | Never more permissive than expected | 28/28 |
    | Intake picked the right security | 28/28 |
    | Same verdict on both repeats | 14/14 cases |
-   | Figures traced to data | 682/685 |
+   | Figures traced to data | 597/598 |
    | Judge corrected by the ceiling | 0 |
+   | Guardrail blocks after calibration | 0 (detections logged) |
 
 5. **Guardrail calibration:**
    - In that run, the *Trade execution instructions* topic blocked 12 strings. Every one was a false positive: an analysis of the investor's own proposed trade, such as "The proposed $15,000 investment in NVIDIA breaches two hard constraints".
