@@ -83,6 +83,7 @@ def validate(d: dict) -> dict:
         c["pref_max_security_risk_units"] = 2.0
     if c_in.get("exclude_crypto"):
         c["excluded_asset_classes"] = ["crypto"]
+        c.pop("max_crypto_pct", None)  # a ban makes the cap redundant
     c["_origin"] = {k: "stated by the user (custom investor)" for k in c}
     esg = bool(c_in.get("exclude_fossil_fuels"))
     if esg:

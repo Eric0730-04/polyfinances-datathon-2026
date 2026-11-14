@@ -368,6 +368,10 @@ function flowHtml(trace, activeIdx = null) {
 }
 
 // ------------------------------------------------------------------ answer
+function goalLabel(trace, gid) {
+  const g = (trace.persona_snapshot?.goals || persona(trace.persona_id)?.goals || []).find((x) => x.id === gid);
+  return g ? g.label : gid;
+}
 function goalOfAction(trace) {
   const gid = trace.action?.goal_id;
   return (trace.toolbox?.rules.buckets_after || []).find((g) => g.goal_id === gid);
@@ -383,7 +387,7 @@ function answerHtml(it) {
     </div>
     ${r.verdict_adjustment ? `<p class="override">Rule override: ${esc(r.verdict_adjustment)}</p>` : ""}
     <div class="meta-row">
-      ${tool ? `<span>Interpreted as <b>${esc(a.action)} ${money(+a.amount_cad)} of ${esc(a.ticker)}</b> · funded by <b>${esc(a.funding === "new_money" ? "new money" : a.funding)}</b> · goal <b>${esc(a.goal_id)}</b></span>` : r.understood ? `<span>Understood so far: <b>${esc(r.understood)}</b></span>` : ""}
+      ${tool ? `<span>Interpreted as <b>${esc(a.action)} ${money(+a.amount_cad)} of ${esc(a.ticker)}</b> · funded by <b>${esc(a.funding === "new_money" ? "new money" : a.funding)}</b> · for <b>${esc(goalLabel(t, a.goal_id))}</b>${a.goal_named === false ? ' <span class="tg tg-assumed" title="The request did not name a goal; SecondLook used the longest-horizon goal. Say the goal in your request to change it.">assumed</span>' : ""}</span>` : r.understood ? `<span>Understood so far: <b>${esc(r.understood)}</b></span>` : ""}
       ${t.grounding?.summary ? `<span>Numbers verified <b>${esc(t.grounding.summary.replace(" figures traced to data", ""))}</b></span>` : ""}
       <span>Run <b>${esc(t.run_id)}</b> · ${t.elapsed_s}s</span></div>`;
   if (!tool) return `<div class="card answer">${head}</div>${followupHtml(it)}`;
@@ -834,7 +838,7 @@ function renderBuilder() {
         <div class="card b-sec"><h3>Limits &amp; preferences <span class="note">leave blank for none</span></h3>
           <div class="b-grid"><label>Minimum cash ($)<input data-c="min_liquid_cad" type="number" min="0" step="1000" value="${c.min_liquid_cad ?? ""}"></label>
             <label>Max in one stock / crypto (%)<input data-c="max_single_position_pct" type="number" min="0" max="100" value="${c.max_single_position_pct ?? ""}"></label>
-            <label>Max in crypto (%)<input data-c="max_crypto_pct" type="number" min="0" max="100" value="${c.max_crypto_pct ?? ""}"></label>
+            <label>Max in crypto (%)<input data-c="max_crypto_pct" type="number" min="0" max="100" value="${c.exclude_crypto ? "" : c.max_crypto_pct ?? ""}" ${c.exclude_crypto ? 'disabled placeholder="no crypto at all"' : ""}></label>
             <label>Max in one sector (%)<input data-c="max_sector_pct" type="number" min="0" max="100" value="${c.max_sector_pct ?? ""}"></label></div>
           ${[["exclude_fossil_fuels", "Avoid fossil fuels and companies excluded by an ESG screen"], ["exclude_crypto", "No crypto at all"], ["avoid_volatile_names", "Prefer stable companies (flag single stocks over 2× S&P 500 volatility)"]]
             .map(([k, l]) => `<label class="check"><input type="checkbox" data-cb="${k}" ${c[k] ? "checked" : ""}> ${l}</label>`).join("")}</div>
@@ -877,7 +881,11 @@ function bindBuilder() {
   $$("[data-g][data-k=label]", B).forEach((i) => i.addEventListener("change", renderBuilder));
   $$("[data-h]", B).forEach((i) => i.addEventListener("input", () => { draft.holdings[+i.dataset.h][i.dataset.k] = i.value; schedulePreview(); }));
   $$("[data-c]", B).forEach((i) => i.addEventListener("input", () => { draft.constraints[i.dataset.c] = i.value === "" ? null : +i.value; schedulePreview(); }));
-  $$("[data-cb]", B).forEach((i) => i.addEventListener("change", () => { draft.constraints[i.dataset.cb] = i.checked; schedulePreview(); }));
+  $$("[data-cb]", B).forEach((i) => i.addEventListener("change", () => {
+    draft.constraints[i.dataset.cb] = i.checked;
+    if (i.dataset.cb === "exclude_crypto") { if (i.checked) draft.constraints.max_crypto_pct = null; renderBuilder(); return; }
+    schedulePreview();
+  }));
   $("[data-addg]", B)?.addEventListener("click", () => { draft.goals.push({ label: "", horizon_years: 5 }); renderBuilder(); });
   $("[data-addh]", B)?.addEventListener("click", () => { draft.holdings.push({ ticker: "SPY", value_cad: 5000, goal: `g${draft.goals.length}` }); renderBuilder(); });
   $$("[data-delg]", B).forEach((b) => b.addEventListener("click", () => {

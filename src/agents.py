@@ -33,6 +33,8 @@ def intake(request_text, persona, universe_brief):
             "funding = 'new_money' or the ticker sold to pay for it (e.g. 'CASH' when they say 'my cash', 'ZST.TO' or 'XBB.TO' when they name those funds); "
             "funding_goal_id = the goal whose money is used (e.g. 'condo' if they say 'my condo savings'). "
             "If they pay with cash and do not name a goal for the cash, use the goal that holds that cash. "
+            "If the request does not say which goal the purchase is for, use the investor's LONGEST-horizon goal (never "
+            "the emergency fund) and set goal_named=false; otherwise goal_named=true. "
             "If the request says 'new money' (or fresh savings, a bonus, extra money), funding MUST be 'new_money' and "
             "funding_goal_id null; never take it from the emergency fund unless they explicitly say so. "
             "If the security is not in the universe or the amount is missing, set in_scope=false and explain in ambiguities.")
@@ -41,7 +43,7 @@ def intake(request_text, persona, universe_brief):
                "holdings": persona["holdings"], "universe": universe_brief}
     schema = ('{"in_scope": bool, "security_mentioned": str|null (the security as the investor named it, e.g. "Palantir"), '
               '"action": "buy"|"sell", "ticker": str, "amount_cad": number, "goal_id": str, '
-              '"funding": str, "funding_goal_id": str|null, "investor_rationale": str (their stated reason, verbatim-ish), '
+              '"funding": str, "funding_goal_id": str|null, "goal_named": bool, "investor_rationale": str (their stated reason, verbatim-ish), '
               '"interpretation": str (one sentence), "ambiguities": [str]}')
     return _call(role, payload, schema, temperature=0.0, max_tokens=800)
 
@@ -128,6 +130,8 @@ def judge(persona, action, bundle):
             "Explain clearly, separate facts (from market data), assumptions (our rules and approximations) and fictional "
             "elements (the persona). State the conditions under which your conclusion would no longer hold. "
             "Describe counterfactual variants as information, not as a recommendation to act. "
+            "key_reasons: 2-4 items, the checks that DECIDE the verdict (breaches, limits close to binding, the main trade-off); "
+            "never repeat a check and summarise all passing hard limits in at most one short clause. "
             "Write for people: express shares and risk levels as percentages (133%, not 1.33); never use code names such as max_single_position_pct or min_liquid_cad; say "
             "'the 10% single-stock limit' instead. In no_longer_valid_if, list only conditions RELEVANT to this verdict. "
             "VERDICT DEFINITIONS: CONSISTENT = no hard constraint or goal limit is breached before or after; "

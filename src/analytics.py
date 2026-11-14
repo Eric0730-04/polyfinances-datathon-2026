@@ -394,7 +394,7 @@ def check_constraints(persona: dict, before: list[dict], after: list[dict]) -> l
     for acl in c.get("excluded_asset_classes", []):
         add(f"No {acl} holdings", ea["asset_class"].get(acl, 0) == 0, eb["asset_class"].get(acl, 0),
             ea["asset_class"].get(acl, 0), "investor-declared exclusion", origin=origin("excluded_asset_classes"))
-    if "max_crypto_pct" in c:
+    if "max_crypto_pct" in c and "crypto" not in c.get("excluded_asset_classes", []):  # a ban supersedes the cap
         add(f"Crypto at most {c['max_crypto_pct']}% of the portfolio", ea["crypto_share"] <= c["max_crypto_pct"] / 100 + 1e-9,
             eb["crypto_share"], ea["crypto_share"], "BTC + ETH", origin=origin("max_crypto_pct"))
     if "max_sector_pct" in c:

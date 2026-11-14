@@ -27,3 +27,12 @@ def test_valid_custom_investor_runs_through_rules():
 def test_bad_profiles_get_readable_errors(patch, msg):
     with pytest.raises(PersonaError, match=msg):
         validate({**GOOD, **patch})
+
+
+def test_crypto_ban_supersedes_cap():
+    p = validate({**GOOD, "constraints": {"max_crypto_pct": 5, "exclude_crypto": True}})
+    assert p["constraints"]["excluded_asset_classes"] == ["crypto"] and "max_crypto_pct" not in p["constraints"]
+    from src.analytics import check_constraints
+    p2 = {**p, "constraints": {**p["constraints"], "max_crypto_pct": 5}}  # even if both are present, only one check runs
+    rules = [c["rule"] for c in check_constraints(p2, p2["holdings"], p2["holdings"])]
+    assert sum("rypto" in r for r in rules) == 1
