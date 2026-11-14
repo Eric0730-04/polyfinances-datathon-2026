@@ -21,6 +21,7 @@ from src.bedrock import DEFAULT_MODEL
 from src.errors import friendly
 from src.grounding import check as grounding_check
 from src.orchestrator import run
+from src.personas import PersonaError, validate as validate_persona
 from src.rules import evaluate
 from src.universe import UNIVERSE
 
@@ -54,14 +55,37 @@ def meta():
                          for t, m in UNIVERSE.items()}}
 
 
+def _with_baseline(p):
+    h = p["holdings"]
+    return {**p, "baseline": {"exposures": exposures(h), "goals": goal_buckets(p, h), "risk": portfolio_risk(h)},
+            "holding_names": {x["ticker"]: UNIVERSE[x["ticker"]]["name"] for x in h}}
+
+
 @app.get("/api/personas")
 def personas():
-    out = []
-    for pid, p in PERSONAS.items():
-        h = p["holdings"]
-        out.append({**p, "baseline": {"exposures": exposures(h), "goals": goal_buckets(p, h), "risk": portfolio_risk(h)},
-                    "holding_names": {x["ticker"]: UNIVERSE[x["ticker"]]["name"] for x in h}})
-    return out
+    return [_with_baseline(p) for p in PERSONAS.values()]
+
+
+def _resolve(persona_id, persona_obj=None):
+    """Official persona by id, or a custom investor sent by the browser (validated)."""
+    if persona_obj:
+        try:
+            return validate_persona(persona_obj)
+        except PersonaError as e:
+            raise HTTPException(400, str(e))
+    if persona_id not in PERSONAS:
+        raise HTTPException(404, "That investor profile doesn't exist. Reload the page.")
+    return PERSONAS[persona_id]
+
+
+class PreviewIn(BaseModel):
+    persona: dict
+
+
+@app.post("/api/persona/preview")
+def persona_preview(body: PreviewIn):
+    """Validate a custom investor and compute its dashboard (no AI)."""
+    return _with_baseline(_resolve(None, body.persona))
 
 
 @app.get("/api/trace/{run_id}")
@@ -78,6 +102,7 @@ def trace(run_id: str):
 class AnalyzeIn(BaseModel):
     persona_id: str
     request: str
+    persona: dict | None = None
 
 
 def _stream_run(persona, request):
@@ -103,36 +128,41 @@ def _stream_run(persona, request):
 
 @app.post("/api/analyze")
 def analyze(body: AnalyzeIn):
-    if body.persona_id not in PERSONAS:
-        raise HTTPException(404, "That investor profile doesn't exist. Reload the page.")
+    persona = _resolve(body.persona_id, body.persona)
     if not body.request.strip():
         raise HTTPException(400, "Type an idea first, or pick one of the suggestions.")
     if len(body.request) > 1000:
         raise HTTPException(400, "That's too long. Describe the idea in a sentence or two.")
-    return StreamingResponse(_stream_run(PERSONAS[body.persona_id], body.request), media_type="text/event-stream")
+    return StreamingResponse(_stream_run(persona, body.request), media_type="text/event-stream")
 
 
 class CompareIn(BaseModel):
     request: str
+    custom_personas: list = []
 
 
 @app.post("/api/compare")
 def compare(body: CompareIn):
+    people = dict(PERSONAS)
+    for c in body.custom_personas[:3]:
+        p = _resolve(None, c)
+        people[p["id"]] = p
+
     def gen():
         q: queue.Queue = queue.Queue()
 
         def one(pid):
             try:
-                t = run(PERSONAS[pid], body.request)
+                t = run(people[pid], body.request)
                 TRACES[t["run_id"]] = t
                 q.put(("result", {"persona_id": pid, "trace": t}))
             except Exception as e:
                 q.put(("error", {"persona_id": pid, **friendly(e)}))
 
-        with ThreadPoolExecutor(len(PERSONAS)) as ex:
-            for pid in PERSONAS:
+        with ThreadPoolExecutor(len(people)) as ex:
+            for pid in people:
                 ex.submit(one, pid)
-            for _ in PERSONAS:
+            for _ in people:
                 ev, data = q.get()
                 yield f"event: {ev}\ndata: {_dump(data)}\n\n"
     return StreamingResponse(gen(), media_type="text/event-stream")
@@ -140,6 +170,7 @@ def compare(body: CompareIn):
 
 class WhatIfIn(BaseModel):
     persona_id: str
+    persona: dict | None = None
     action: dict
     horizon_years: float | None = None
     risk_tolerance: str | None = None
@@ -148,9 +179,7 @@ class WhatIfIn(BaseModel):
 @app.post("/api/whatif")
 def whatif(body: WhatIfIn):
     """Instant deterministic recompute of the rules for a modified version of the idea (no AI involved)."""
-    if body.persona_id not in PERSONAS:
-        raise HTTPException(404, "That investor profile doesn't exist. Reload the page.")
-    p = copy.deepcopy(PERSONAS[body.persona_id])
+    p = copy.deepcopy(_resolve(body.persona_id, body.persona))
     a = dict(body.action)
     if a.get("ticker") not in UNIVERSE or a.get("ticker") == "CASH":
         raise HTTPException(400, "Pick one of the assets in the list.")
@@ -222,7 +251,7 @@ def chat(body: ChatIn):
     t = _get_trace(body.run_id) if body.run_id.isalnum() else None
     if not t:
         raise HTTPException(404, "This analysis is no longer available. Run it again to ask follow-ups.")
-    persona = PERSONAS.get(t["persona_id"], {})
+    persona = t.get("persona_snapshot") or PERSONAS.get(t["persona_id"], {})
     ctx = _chat_context(t)
     analysable = {t: m["name"] for t, m in UNIVERSE.items() if t != "CASH"}
     try:

@@ -21,7 +21,8 @@ UNIVERSE_BRIEF = {t: f"{m['name']} [{m['asset_class']}]" for t, m in UNIVERSE.it
 class Trace:
     def __init__(self, persona, request):
         self.data = {"run_id": uuid.uuid4().hex[:12], "started_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                     "model": DEFAULT_MODEL, "persona_id": persona["id"], "request": request, "steps": []}
+                     "model": DEFAULT_MODEL, "persona_id": persona["id"], "request": request, "steps": [],
+                     "persona_snapshot": persona}
 
     def step(self, agent, kind, output, meta=None, note=None):
         s = {"agent": agent, "kind": kind, "output": output}

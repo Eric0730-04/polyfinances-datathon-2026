@@ -45,6 +45,8 @@ const CONSTRAINT = {
 
 const state = { personas: [], meta: null, pid: null, threads: {}, history: [], charts: {}, seq: 0 };
 const persona = (id = state.pid) => state.personas.find((p) => p.id === id);
+const pcolor = (p) => PCOLOR[p.id] || (p.custom ? "#0f766e" : "#64748b");
+const personaPayload = (p) => (p.custom ? { persona: p.def } : {});
 const initials = (p) => p.name.slice(0, 1);
 
 // ------------------------------------------------------------------ errors
@@ -73,6 +75,8 @@ async function boot() {
     $("#thread").innerHTML = errorCard({ ...SERVER_DOWN, technical: String(e) });
     return;
   }
+  await loadCustoms();
+  $("#addInvestor").addEventListener("click", () => openBuilder());
   $$(".nav-item").forEach((a) => a.addEventListener("click", () => showView(a.dataset.view)));
   $("#newCheck").addEventListener("click", () => { showView("check"); $("#request").value = ""; $("#request").focus(); $("#askCard").scrollIntoView({ behavior: "smooth", block: "center" }); });
   $("#runBtn").addEventListener("click", () => ask());
@@ -83,7 +87,8 @@ async function boot() {
   renderMethod();
   const qs = new URLSearchParams(location.search);
   selectPersona(state.personas.some((p) => p.id === qs.get("persona")) ? qs.get("persona") : state.personas[0].id);
-  if (qs.get("view")) showView(qs.get("view"));
+  if (qs.get("view") === "builder") openBuilder();
+  else if (qs.get("view")) showView(qs.get("view"));
   if (qs.get("q")) ask(qs.get("q"));
   if (qs.get("compare")) { showView("compare"); $("#compareRequest").value = qs.get("compare"); compare(); }
   if (qs.get("ask") && qs.get("run")) state.pendingChat = qs.get("ask");  // demo/test: open a run and ask a follow-up
@@ -109,14 +114,16 @@ function selectPersona(pid) {
   const p = persona();
   $("#personaList").innerHTML = state.personas.map((x) => `
     <div class="persona-item ${x.id === pid ? "active" : ""}" data-pid="${x.id}">
-      <div class="avatar" style="background:${PCOLOR[x.id] || "#64748b"}">${initials(x)}</div>
-      <div><div class="nm">${esc(x.name)}, ${x.age}</div><div class="sb">${esc(RISK[x.risk_tolerance])} risk · ${x.official_persona ? "official" : "extra scenario"}</div></div>
+      <div class="avatar" style="background:${pcolor(x)}">${initials(x)}</div>
+      <div style="flex:1;min-width:0"><div class="nm">${esc(x.name)}, ${x.age}</div><div class="sb">${esc(RISK[x.risk_tolerance])} risk · ${x.custom ? "your investor" : x.official_persona ? "official" : "extra scenario"}</div></div>
+      ${x.custom ? `<span class="p-edit" data-edit="${x.id}" title="Edit">Edit</span>` : ""}
     </div>`).join("");
+  $$("[data-edit]").forEach((el) => el.addEventListener("click", (e) => { e.stopPropagation(); openBuilder(el.dataset.edit); }));
   $$(".persona-item").forEach((el) => el.addEventListener("click", () => { showView("check"); selectPersona(el.dataset.pid); }));
-  $("#pTitle").innerHTML = `<div class="avatar lg" style="background:${PCOLOR[p.id]}">${initials(p)}</div>${esc(p.name)}, ${p.age}`;
+  $("#pTitle").innerHTML = `<div class="avatar lg" style="background:${pcolor(p)}">${initials(p)}</div>${esc(p.name)}, ${p.age}`;
   const hz = p.goals.filter((g) => g.horizon_years > 0).map((g) => (g.horizon_note || "").match(/(\d+[-–]\d+ years|\d+ years or more)/)?.[0] || `${g.horizon_years} years`);
   $("#pTags").innerHTML = [`${RISK[p.risk_tolerance]} risk`, ...hz.map((h) => `Horizon ${h}`), title(p.knowledge_level),
-    p.official_persona ? "Official persona" : "Extra scenario", "Fictional"].map((t, i) => `<span class="tag ${i === 0 ? "blue" : ""}">${esc(t)}</span>`).join("");
+    p.custom ? "Your investor" : p.official_persona ? "Official persona" : "Extra scenario", "Fictional"].map((t, i) => `<span class="tag ${i === 0 ? "blue" : ""}">${esc(t)}</span>`).join("");
   $("#askTitle").textContent = `What is ${p.name} thinking of doing?`;
   $("#request").placeholder = p.sample_requests[0];
   $("#suggestions").innerHTML = p.sample_requests.map((s) => `<button class="pill">${CHECK_SVG}${esc(s)}</button>`).join("");
@@ -260,7 +267,7 @@ async function ask(text) {
   renderThread(item.id);
   $("#runBtn").disabled = true;
   try {
-    await sse("/api/analyze", { persona_id: p.id, request: req }, (ev, data) => {
+    await sse("/api/analyze", { persona_id: p.id, request: req, ...personaPayload(p) }, (ev, data) => {
       if (ev === "step") { const i = FLOW.findIndex(([k]) => data.label.startsWith(k)); if (i >= 0) { item.step = i; updatePending(item); } }
       else if (ev === "result") { Object.assign(item, { status: "done", trace: data }); addHistory(item); }
       else if (ev === "error") { Object.assign(item, { status: "error", error: data }); }
@@ -501,7 +508,7 @@ function bindWhatif(t, it) {
     timer = setTimeout(async () => {
       try {
         const r = await fetch("/api/whatif", { method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ persona_id: p.id, action: action(), horizon_years: horizonTouched ? +q("whz").value : null, risk_tolerance: tol }) }).then(ok);
+          body: JSON.stringify({ persona_id: p.id, ...personaPayload(p), action: action(), horizon_years: horizonTouched ? +q("whz").value : null, risk_tolerance: tol }) }).then(ok);
         renderWhatif(t, it, r, action(), tol !== p.risk_tolerance || horizonTouched);
       } catch (e) { q("wout").innerHTML = errorCard(e.f || { title: "Couldn't recompute", technical: String(e) }); }
     }, 120);
@@ -703,11 +710,11 @@ async function compare() {
   const req = $("#compareRequest").value.trim();
   if (!req) { $("#compareRequest").focus(); return; }
   $("#compareBtn").disabled = true;
-  const who = (p) => `<div class="who"><div class="avatar" style="background:${PCOLOR[p.id]}">${initials(p)}</div><div><b>${esc(p.name)}, ${p.age}</b><span>${esc(RISK[p.risk_tolerance])} risk</span></div></div>`;
+  const who = (p) => `<div class="who"><div class="avatar" style="background:${pcolor(p)}">${initials(p)}</div><div><b>${esc(p.name)}, ${p.age}</b><span>${esc(RISK[p.risk_tolerance])} risk</span></div></div>`;
   $("#compareTable").innerHTML = "";
   $("#compareGrid").innerHTML = state.personas.map((p) => `<div class="card ccard" id="cc-${p.id}">${who(p)}<div class="skeleton" style="width:60%"></div><div class="skeleton"></div><div class="skeleton" style="width:80%"></div></div>`).join("");
   try {
-    await sse("/api/compare", { request: req }, (ev, d) => {
+    await sse("/api/compare", { request: req, custom_personas: state.personas.filter((x) => x.custom).slice(0, 3).map((x) => x.def) }, (ev, d) => {
       const p = persona(d.persona_id), el = document.getElementById(`cc-${p.id}`);
       if (ev === "error") { el.innerHTML = `${who(p)}${errorCard(d)}`; return; }
       const t = d.trace, r = t.result, v = vinfo(r.verdict), g = goalOfAction(t);
@@ -720,6 +727,145 @@ async function compare() {
     });
   } catch (e) { $("#compareGrid").innerHTML = errorCard(e.f || { title: "Comparison failed", technical: String(e) }); }
   finally { $("#compareBtn").disabled = false; }
+}
+
+// ------------------------------------------------------------------ custom investors (stored in this browser only)
+const LS_KEY = "secondlook.customInvestors";
+const readCustoms = () => { try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; } };
+const writeCustoms = (xs) => { try { localStorage.setItem(LS_KEY, JSON.stringify(xs)); } catch { /* private mode */ } };
+async function previewPersona(def) {
+  const r = await fetch("/api/persona/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ persona: def }) });
+  return ok(r);
+}
+async function loadCustoms() {
+  for (const def of readCustoms()) {
+    try { state.personas.push({ ...(await previewPersona(def)), def }); } catch { /* skip invalid saved profile */ }
+  }
+}
+const TEMPLATES = {
+  blank: { risk_tolerance: "moderate", knowledge_level: "intermediate", goals: [{ label: "Emergency fund", horizon_years: 0 }, { label: "Long-term growth", horizon_years: 15 }],
+    holdings: [{ ticker: "CASH", value_cad: 10000, goal: "g1" }, { ticker: "XEQT.TO", value_cad: 30000, goal: "g2" }, { ticker: "XBB.TO", value_cad: 10000, goal: "g2" }],
+    constraints: { min_liquid_cad: 10000, max_single_position_pct: 10, max_crypto_pct: 5, max_sector_pct: 50 } },
+  house: { risk_tolerance: "moderate", knowledge_level: "novice", goals: [{ label: "Emergency fund", horizon_years: 0 }, { label: "House down payment", horizon_years: 3 }, { label: "Retirement", horizon_years: 30 }],
+    holdings: [{ ticker: "CASH", value_cad: 8000, goal: "g1" }, { ticker: "CASH.TO", value_cad: 25000, goal: "g2" }, { ticker: "XBB.TO", value_cad: 10000, goal: "g2" }, { ticker: "XEQT.TO", value_cad: 12000, goal: "g3" }],
+    constraints: { min_liquid_cad: 8000, max_single_position_pct: 10 } },
+  retiree: { risk_tolerance: "low", knowledge_level: "sophisticated", goals: [{ label: "Cash reserve", horizon_years: 0 }, { label: "Retirement income", horizon_years: 2 }],
+    holdings: [{ ticker: "CASH", value_cad: 30000, goal: "g1" }, { ticker: "ZST.TO", value_cad: 80000, goal: "g2" }, { ticker: "XBB.TO", value_cad: 120000, goal: "g2" }, { ticker: "VDY.TO", value_cad: 40000, goal: "g2" }, { ticker: "KO", value_cad: 15000, goal: "g2" }],
+    constraints: { min_liquid_cad: 30000, max_single_position_pct: 8, exclude_crypto: true, avoid_volatile_names: true } },
+  esg: { risk_tolerance: "high", knowledge_level: "intermediate", goals: [{ label: "Emergency fund", horizon_years: 0 }, { label: "Long-term growth", horizon_years: 20 }],
+    holdings: [{ ticker: "CASH", value_cad: 6000, goal: "g1" }, { ticker: "ESGV", value_cad: 20000, goal: "g2" }, { ticker: "ICLN", value_cad: 5000, goal: "g2" }, { ticker: "XEF.TO", value_cad: 8000, goal: "g2" }],
+    constraints: { min_liquid_cad: 6000, max_single_position_pct: 15, exclude_fossil_fuels: true } },
+};
+let draft = null;
+function openBuilder(editId) {
+  const existing = editId && state.personas.find((p) => p.id === editId);
+  draft = existing ? JSON.parse(JSON.stringify(existing.def))
+    : { id: `custom-${Math.random().toString(36).slice(2, 10)}`, name: "", age: 30, ...JSON.parse(JSON.stringify(TEMPLATES.blank)) };
+  draft.editing = !!existing;
+  showView("builder");
+  renderBuilder();
+}
+function renderBuilder() {
+  const d = draft, c = d.constraints || (d.constraints = {});
+  const assetOpts = (sel) => Object.entries(state.meta.universe).map(([k, v]) => `<option value="${k}" ${k === sel ? "selected" : ""}>${esc(k)} · ${esc(v.name)}</option>`).join("");
+  const goalOpts = (sel) => d.goals.map((g, i) => `<option value="g${i + 1}" ${`g${i + 1}` === sel ? "selected" : ""}>${esc(g.label || `Goal ${i + 1}`)}</option>`).join("");
+  $("#builder").innerHTML = `
+    <header class="page-head"><div><div class="crumb">${d.editing ? "Edit your investor" : "Create your own investor"}</div><h1>${esc(d.name || "New investor")}</h1>
+      <div class="sub-head">Fictional profile, saved only in this browser. SecondLook then checks any idea against it, exactly like the official personas.</div></div></header>
+    <div class="builder">
+      <div class="b-form">
+        ${d.editing ? "" : `<div class="card b-sec"><h3>Start from a template</h3><div class="pills">${[["blank", "Balanced saver"], ["house", "Saving for a house"], ["retiree", "Near retirement"], ["esg", "ESG-minded growth"]]
+          .map(([k, l]) => `<button class="pill" data-tpl="${k}">${l}</button>`).join("")}</div></div>`}
+        <div class="card b-sec"><h3>About the investor</h3>
+          <div class="b-grid"><label>Name<input data-f="name" value="${esc(d.name)}" placeholder="e.g. Lea" maxlength="30"></label>
+            <label>Age<input data-f="age" type="number" min="18" max="100" value="${d.age}"></label></div>
+          <label>Risk profile</label><div class="seg wide" data-seg="risk_tolerance">${Object.keys(RISK).map((k) => `<button data-v="${k}" class="${d.risk_tolerance === k ? "on" : ""}">${RISK[k]}</button>`).join("")}</div>
+          <label>Investing experience</label><div class="seg wide" data-seg="knowledge_level">${["novice", "intermediate", "sophisticated"].map((k) => `<button data-v="${k}" class="${d.knowledge_level === k ? "on" : ""}">${title(k)}</button>`).join("")}</div></div>
+        <div class="card b-sec"><h3>Goals <span class="note">when will the money be needed?</span></h3>
+          ${d.goals.map((g, i) => `<div class="b-row"><input data-g="${i}" data-k="label" value="${esc(g.label)}" placeholder="Goal name">
+            <label class="inline"><input data-g="${i}" data-k="horizon_years" type="number" min="0" max="60" step="0.5" value="${g.horizon_years}"> years</label>
+            ${d.goals.length > 1 ? `<button class="x" data-delg="${i}" title="Remove">×</button>` : ""}</div>`).join("")}
+          ${d.goals.length < 4 ? `<button class="link" data-addg>+ Add a goal</button>` : ""}</div>
+        <div class="card b-sec"><h3>Holdings <span class="note">fictional amounts in CAD</span></h3>
+          ${d.holdings.map((h, i) => `<div class="b-row h"><select data-h="${i}" data-k="ticker">${assetOpts(h.ticker)}</select>
+            <input data-h="${i}" data-k="value_cad" type="number" min="1" step="500" value="${h.value_cad}">
+            <select data-h="${i}" data-k="goal">${goalOpts(h.goal)}</select>
+            ${d.holdings.length > 1 ? `<button class="x" data-delh="${i}" title="Remove">×</button>` : ""}</div>`).join("")}
+          ${d.holdings.length < 15 ? `<button class="link" data-addh>+ Add a holding</button>` : ""}</div>
+        <div class="card b-sec"><h3>Limits &amp; preferences <span class="note">leave blank for none</span></h3>
+          <div class="b-grid"><label>Minimum cash ($)<input data-c="min_liquid_cad" type="number" min="0" step="1000" value="${c.min_liquid_cad ?? ""}"></label>
+            <label>Max in one stock / crypto (%)<input data-c="max_single_position_pct" type="number" min="0" max="100" value="${c.max_single_position_pct ?? ""}"></label>
+            <label>Max in crypto (%)<input data-c="max_crypto_pct" type="number" min="0" max="100" value="${c.max_crypto_pct ?? ""}"></label>
+            <label>Max in one sector (%)<input data-c="max_sector_pct" type="number" min="0" max="100" value="${c.max_sector_pct ?? ""}"></label></div>
+          ${[["exclude_fossil_fuels", "Avoid fossil fuels and companies excluded by an ESG screen"], ["exclude_crypto", "No crypto at all"], ["avoid_volatile_names", "Prefer stable companies (flag single stocks over 2× S&P 500 volatility)"]]
+            .map(([k, l]) => `<label class="check"><input type="checkbox" data-cb="${k}" ${c[k] ? "checked" : ""}> ${l}</label>`).join("")}</div>
+      </div>
+      <div class="b-preview"><div class="card b-sec sticky"><h3>Preview</h3><div id="bPreview" class="small muted">Fill in the profile to see the dashboard.</div>
+        <div class="b-actions">${d.editing ? `<button class="link danger" id="bDelete">Delete investor</button>` : "<span></span>"}<button class="btn" id="bSave">${d.editing ? "Save changes" : "Save and start checking ideas"}</button></div></div></div>
+    </div>`;
+  bindBuilder();
+  schedulePreview();
+}
+let previewT;
+function schedulePreview() { clearTimeout(previewT); previewT = setTimeout(updatePreview, 250); }
+async function updatePreview() {
+  const el = $("#bPreview");
+  if (!el) return;
+  if (!draft.name) { el.innerHTML = `<span class="muted">Give the investor a name to see the preview.</span>`; return; }
+  try {
+    const p = await previewPersona(cleanDraft());
+    const e = p.baseline.exposures;
+    el.innerHTML = `<div class="b-kpi"><div><span>Portfolio</span><b>${money(e.total_value_cad)}</b></div><div><span>Past volatility</span><b>${pct(p.baseline.risk.annual_volatility, 1)}</b></div></div>
+      ${p.baseline.goals.map((g) => { const sc = Math.max(g.allowed_max_risky, g.risky_share, 0.05) * 1.15, over = g.status === "over limit";
+        return `<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span>${esc(g.label)}</span><span class="r" style="color:${over ? "var(--bad)" : "inherit"}">${pct(g.risky_share)} of ${pct(g.allowed_max_risky)}</span></div>
+        <div class="mini"><div class="f" style="width:${(g.risky_share / sc) * 100}%;background:${over ? "var(--bad)" : "var(--primary)"}"></div><div class="l" style="left:${(g.allowed_max_risky / sc) * 100}%"></div></div></div>`; }).join("")}
+      ${p.baseline.goals.some((g) => g.status === "over limit") ? `<div class="alert alert-warn">A goal already starts over its risk limit. That's allowed, and SecondLook will point it out in every check.</div>` : ""}
+      <div class="small muted" style="margin-top:8px">Risk = S&amp;P 500 equivalents · limit = lower of the goal's horizon capacity and the risk profile.</div>`;
+    el.dataset.valid = "1";
+  } catch (err) { el.innerHTML = `<div class="alert alert-err" style="margin:0">${esc(err.f?.title || "Check the profile")}</div>`; el.dataset.valid = ""; }
+}
+function cleanDraft() {
+  const { editing, ...d } = draft;
+  return { ...d, age: +d.age, goals: d.goals.map((g) => ({ label: g.label, horizon_years: +g.horizon_years })),
+    holdings: d.holdings.map((h) => ({ ticker: h.ticker, value_cad: +h.value_cad, goal: h.goal })) };
+}
+function bindBuilder() {
+  const B = $("#builder");
+  $$("[data-tpl]", B).forEach((b) => b.addEventListener("click", () => { Object.assign(draft, JSON.parse(JSON.stringify(TEMPLATES[b.dataset.tpl]))); renderBuilder(); }));
+  $$("[data-f]", B).forEach((i) => i.addEventListener("input", () => { draft[i.dataset.f] = i.value; if (i.dataset.f === "name") $("#builder h1").textContent = i.value || "New investor"; schedulePreview(); }));
+  $$("[data-seg]", B).forEach((seg) => $$("button", seg).forEach((b) => b.addEventListener("click", () => { draft[seg.dataset.seg] = b.dataset.v; $$("button", seg).forEach((x) => x.classList.toggle("on", x === b)); schedulePreview(); })));
+  $$("[data-g]", B).forEach((i) => i.addEventListener("input", () => { draft.goals[+i.dataset.g][i.dataset.k] = i.value; schedulePreview(); }));
+  $$("[data-g][data-k=label]", B).forEach((i) => i.addEventListener("change", renderBuilder));
+  $$("[data-h]", B).forEach((i) => i.addEventListener("input", () => { draft.holdings[+i.dataset.h][i.dataset.k] = i.value; schedulePreview(); }));
+  $$("[data-c]", B).forEach((i) => i.addEventListener("input", () => { draft.constraints[i.dataset.c] = i.value === "" ? null : +i.value; schedulePreview(); }));
+  $$("[data-cb]", B).forEach((i) => i.addEventListener("change", () => { draft.constraints[i.dataset.cb] = i.checked; schedulePreview(); }));
+  $("[data-addg]", B)?.addEventListener("click", () => { draft.goals.push({ label: "", horizon_years: 5 }); renderBuilder(); });
+  $("[data-addh]", B)?.addEventListener("click", () => { draft.holdings.push({ ticker: "SPY", value_cad: 5000, goal: `g${draft.goals.length}` }); renderBuilder(); });
+  $$("[data-delg]", B).forEach((b) => b.addEventListener("click", () => {
+    const i = +b.dataset.delg; draft.goals.splice(i, 1);
+    draft.holdings = draft.holdings.map((h) => { const n = +h.goal.slice(1); return { ...h, goal: n - 1 === i ? "g1" : n - 1 > i ? `g${n - 1}` : h.goal }; });
+    renderBuilder();
+  }));
+  $$("[data-delh]", B).forEach((b) => b.addEventListener("click", () => { draft.holdings.splice(+b.dataset.delh, 1); renderBuilder(); }));
+  $("#bSave").addEventListener("click", saveDraft);
+  $("#bDelete")?.addEventListener("click", () => {
+    writeCustoms(readCustoms().filter((x) => x.id !== draft.id));
+    state.personas = state.personas.filter((x) => x.id !== draft.id);
+    showView("check"); selectPersona(state.personas[0].id);
+  });
+}
+async function saveDraft() {
+  const def = cleanDraft();
+  try {
+    const p = await previewPersona(def);
+    const saved = readCustoms().filter((x) => x.id !== def.id);
+    writeCustoms([...saved, def]);
+    state.personas = state.personas.filter((x) => x.id !== def.id).concat([{ ...p, def }]);
+    showView("check");
+    selectPersona(def.id);
+  } catch (err) {
+    $("#bPreview").innerHTML = `<div class="alert alert-err" style="margin:0">${esc(err.f?.title || "Check the profile")}</div>`;
+  }
 }
 
 // ------------------------------------------------------------------ method
