@@ -6,7 +6,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
-from src import agents
+from src import agents, aws
 from src.analytics import (exposures, portfolio_risk, provenance, security_metrics, stress_tests)
 from src.bedrock import DEFAULT_MODEL
 from src.grounding import check as grounding_check
@@ -72,7 +72,7 @@ def run(persona: dict, request: str, action_override: dict | None = None, on_ste
         tr.data["result"] = {"verdict": "INSUFFICIENT_DATA", "headline": "I need more details before taking a second look.",
                              "plain_summary": " ".join(errs + action.get("ambiguities", [])), "confidence": "low"}
         tr.data["elapsed_s"] = round(time.time() - t0, 1)
-        return tr.data
+        return _finish(tr)
 
     # 2. Deterministic toolbox
     notify("Toolbox: computing exposures, risk, stress tests and rules")
@@ -151,6 +151,56 @@ def run(persona: dict, request: str, action_override: dict | None = None, on_ste
     tr.data["grounding"] = grounding_check(res, *sources)
     tr.data["grounding_by_agent"] = {s["agent"]: grounding_check(s["output"], *sources)
                                      for s in tr.data["steps"] if s["kind"] == "llm"}
+    # 7. Bedrock Guardrail on every user-facing string
+    notify("Guardrail: responsible-output screen")
+    tr.data["guardrail"] = _guard_result(res)
+
     tr.data["elapsed_s"] = round(time.time() - t0, 1)
     tr.data["total_tokens"] = sum(s.get("tokens") or 0 for s in tr.data["steps"])
+    return _finish(tr)
+
+
+def _finish(tr):
+    """Persist the audit trace to S3 (never lose the analysis because of storage)."""
+    try:
+        tr.data["s3_uri"] = aws.save_trace(tr.data)
+    except Exception as e:
+        tr.data["s3_uri"] = None
+        tr.data["s3_error"] = str(e)[:200]
     return tr.data
+
+
+GUARDED_FIELDS = ("headline", "plain_summary", "key_reasons", "debate_takeaway", "no_longer_valid_if", "variants")
+
+
+def _guard_result(res):
+    """Screen each user-facing string; replace any blocked string in place. Returns a summary."""
+    jobs = []
+    for f in GUARDED_FIELDS:
+        v = res.get(f)
+        if isinstance(v, str):
+            jobs.append((f, None, None, v))
+        elif isinstance(v, list):
+            for i, x in enumerate(v):
+                if isinstance(x, str):
+                    jobs.append((f, i, None, x))
+                elif isinstance(x, dict) and isinstance(x.get("comment"), str):
+                    jobs.append((f, i, "comment", x["comment"]))
+    try:
+        with ThreadPoolExecutor(8) as ex:
+            outs = list(ex.map(lambda j: aws.guard(j[3]), jobs))
+    except Exception as e:
+        return {"status": "error", "error": str(e)[:200], "checked": 0}
+    if outs and outs[0]["action"] == "NOT_CONFIGURED":
+        return {"status": "not configured", "checked": 0}
+    blocked = []
+    for (f, i, k, _), o in zip(jobs, outs):
+        if o["action"] == "GUARDRAIL_INTERVENED":
+            blocked.append({"field": f, "index": i, "topics": o.get("topics"), "words": o.get("words")})
+            if i is None:
+                res[f] = o["text"]
+            elif k:
+                res[f][i][k] = o["text"]
+            else:
+                res[f][i] = o["text"]
+    return {"status": "active", "checked": len(jobs), "blocked": blocked}

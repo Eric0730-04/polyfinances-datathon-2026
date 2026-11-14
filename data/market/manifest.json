@@ -1,0 +1,365 @@
+{
+  "source": "Yahoo Finance via yfinance (public, unofficial API)",
+  "fetched_at_utc": "2026-11-14T16:53:40+00:00",
+  "price_field": "Close, adjusted for splits and dividends (auto_adjust=True)",
+  "fx": "CAD=X = CAD per 1 USD",
+  "tickers": {
+    "CASH.TO": {
+      "currency": "CAD",
+      "long_name": "Global X High Interest Savings ETF",
+      "quote_type": "ETF",
+      "sectors": null,
+      "dividend_yield": 2.01,
+      "history_start": "2021-11-03",
+      "history_end": "2026-11-13",
+      "n_obs": 1263
+    },
+    "XBB.TO": {
+      "currency": "CAD",
+      "long_name": "iShares Core Canadian Universe Bond Index ETF",
+      "quote_type": "ETF",
+      "sectors": null,
+      "dividend_yield": 3.52,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "ZAG.TO": {
+      "currency": "CAD",
+      "long_name": "BMO Aggregate Bond Index ETF",
+      "quote_type": "ETF",
+      "sectors": null,
+      "dividend_yield": 3.45,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "XIC.TO": {
+      "currency": "CAD",
+      "long_name": "iShares Core S&P/TSX Capped Composite Index ETF",
+      "quote_type": "ETF",
+      "sectors": {
+        "realestate": 0.0134,
+        "consumer_cyclical": 0.0353,
+        "basic_materials": 0.1552,
+        "consumer_defensive": 0.0308,
+        "technology": 0.0867,
+        "communication_services": 0.0148,
+        "financial_services": 0.3512,
+        "utilities": 0.0304,
+        "industrials": 0.1018,
+        "energy": 0.1783,
+        "healthcare": 0.0019
+      },
+      "dividend_yield": 1.98,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "XSP.TO": {
+      "currency": "CAD",
+      "long_name": "iShares Core S&P 500 Index ETF (CAD-Hedged)",
+      "quote_type": "ETF",
+      "sectors": {
+        "realestate": 0.0176,
+        "consumer_cyclical": 0.0904,
+        "basic_materials": 0.0155,
+        "consumer_defensive": 0.0477,
+        "technology": 0.387,
+        "communication_services": 0.0915,
+        "financial_services": 0.1184,
+        "utilities": 0.0204,
+        "industrials": 0.0742,
+        "energy": 0.0385,
+        "healthcare": 0.0988
+      },
+      "dividend_yield": 1.13,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "VFV.TO": {
+      "currency": "CAD",
+      "long_name": "Vanguard S&P 500 Index ETF",
+      "quote_type": "ETF",
+      "sectors": {
+        "realestate": 0.018,
+        "consumer_cyclical": 0.0931,
+        "basic_materials": 0.0168,
+        "consumer_defensive": 0.0446,
+        "technology": 0.3872,
+        "communication_services": 0.095,
+        "financial_services": 0.1202,
+        "utilities": 0.0199,
+        "industrials": 0.0775,
+        "energy": 0.0348,
+        "healthcare": 0.0929
+      },
+      "dividend_yield": 0.86,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "ZQQ.TO": {
+      "currency": "CAD",
+      "long_name": "BMO Nasdaq 100 Equity Hedged to CAD Index ETF",
+      "quote_type": "ETF",
+      "sectors": {
+        "consumer_cyclical": 0.1045,
+        "basic_materials": 0.0096,
+        "consumer_defensive": 0.0611,
+        "technology": 0.5859,
+        "communication_services": 0.1242,
+        "financial_services": 0.0021,
+        "utilities": 0.0112,
+        "industrials": 0.0542,
+        "energy": 0.0048,
+        "healthcare": 0.0425
+      },
+      "dividend_yield": 0.24,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "XEF.TO": {
+      "currency": "CAD",
+      "long_name": "iShares Core MSCI EAFE IMI Index ETF",
+      "quote_type": "ETF",
+      "sectors": {
+        "realestate": 0.0266,
+        "consumer_cyclical": 0.08,
+        "basic_materials": 0.0626,
+        "consumer_defensive": 0.0673,
+        "technology": 0.1093,
+        "communication_services": 0.0464,
+        "financial_services": 0.2336,
+        "utilities": 0.0356,
+        "industrials": 0.1892,
+        "energy": 0.0429,
+        "healthcare": 0.1065
+      },
+      "dividend_yield": 2.38,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "XEC.TO": {
+      "currency": "CAD",
+      "long_name": "iShares Core MSCI Emerging Markets IMI Index ETF",
+      "quote_type": "ETF",
+      "sectors": {
+        "realestate": 0.0158,
+        "consumer_cyclical": 0.081,
+        "basic_materials": 0.0575,
+        "consumer_defensive": 0.0295,
+        "technology": 0.3988,
+        "communication_services": 0.0567,
+        "financial_services": 0.1962,
+        "utilities": 0.0197,
+        "industrials": 0.0724,
+        "energy": 0.0364,
+        "healthcare": 0.0359
+      },
+      "dividend_yield": 1.72,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "ZEQT.TO": {
+      "currency": "CAD",
+      "long_name": "BMO All-Equity ETF",
+      "quote_type": "ETF",
+      "sectors": {
+        "realestate": 0.0173,
+        "consumer_cyclical": 0.073,
+        "basic_materials": 0.0648,
+        "consumer_defensive": 0.0433,
+        "technology": 0.2705,
+        "communication_services": 0.0631,
+        "financial_services": 0.2009,
+        "utilities": 0.025,
+        "industrials": 0.1017,
+        "energy": 0.0725,
+        "healthcare": 0.0678
+      },
+      "dividend_yield": 1.29,
+      "history_start": "2022-02-09",
+      "history_end": "2026-11-13",
+      "n_obs": 1196
+    },
+    "XEQT.TO": {
+      "currency": "CAD",
+      "long_name": "iShares Core Equity ETF Portfolio",
+      "quote_type": "ETF",
+      "sectors": {
+        "realestate": 0.0202,
+        "consumer_cyclical": 0.0732,
+        "basic_materials": 0.0676,
+        "consumer_defensive": 0.0452,
+        "technology": 0.2393,
+        "communication_services": 0.055,
+        "financial_services": 0.2099,
+        "utilities": 0.0261,
+        "industrials": 0.1147,
+        "energy": 0.0746,
+        "healthcare": 0.0744
+      },
+      "dividend_yield": 1.61,
+      "history_start": "2019-08-14",
+      "history_end": "2026-11-13",
+      "n_obs": 1821
+    },
+    "VBAL.TO": {
+      "currency": "CAD",
+      "long_name": "Vanguard Balanced ETF Portfolio",
+      "quote_type": "ETF",
+      "sectors": {
+        "realestate": 0.0204,
+        "consumer_cyclical": 0.0732,
+        "basic_materials": 0.0812,
+        "consumer_defensive": 0.0397,
+        "technology": 0.242,
+        "communication_services": 0.0551,
+        "financial_services": 0.2143,
+        "utilities": 0.0232,
+        "industrials": 0.1098,
+        "energy": 0.0764,
+        "healthcare": 0.0647
+      },
+      "dividend_yield": 2.17,
+      "history_start": "2018-02-01",
+      "history_end": "2026-11-13",
+      "n_obs": 2205
+    },
+    "BTCC-B.TO": {
+      "currency": "CAD",
+      "long_name": "Purpose Bitcoin ETF Non-Currency Hedged Units",
+      "quote_type": "ETF",
+      "sectors": null,
+      "dividend_yield": 0.0,
+      "history_start": "2021-02-18",
+      "history_end": "2026-11-13",
+      "n_obs": 1441
+    },
+    "RY.TO": {
+      "currency": "CAD",
+      "long_name": "Royal Bank of Canada",
+      "quote_type": "EQUITY",
+      "sectors": {
+        "financial_services": 1.0
+      },
+      "dividend_yield": 2.44,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "TD.TO": {
+      "currency": "CAD",
+      "long_name": "The Toronto-Dominion Bank",
+      "quote_type": "EQUITY",
+      "sectors": {
+        "financial_services": 1.0
+      },
+      "dividend_yield": 2.54,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "BNS.TO": {
+      "currency": "CAD",
+      "long_name": "The Bank of Nova Scotia",
+      "quote_type": "EQUITY",
+      "sectors": {
+        "financial_services": 1.0
+      },
+      "dividend_yield": 3.46,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "BMO.TO": {
+      "currency": "CAD",
+      "long_name": "Bank of Montreal",
+      "quote_type": "EQUITY",
+      "sectors": {
+        "financial_services": 1.0
+      },
+      "dividend_yield": 2.77,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "ENB.TO": {
+      "currency": "CAD",
+      "long_name": "Enbridge Inc.",
+      "quote_type": "EQUITY",
+      "sectors": {
+        "energy": 1.0
+      },
+      "dividend_yield": 5.71,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "CNQ.TO": {
+      "currency": "CAD",
+      "long_name": "Canadian Natural Resources Limited",
+      "quote_type": "EQUITY",
+      "sectors": {
+        "energy": 1.0
+      },
+      "dividend_yield": 3.53,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "SU.TO": {
+      "currency": "CAD",
+      "long_name": "Suncor Energy Inc.",
+      "quote_type": "EQUITY",
+      "sectors": {
+        "energy": 1.0
+      },
+      "dividend_yield": 2.65,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "BCE.TO": {
+      "currency": "CAD",
+      "long_name": "BCE Inc.",
+      "quote_type": "EQUITY",
+      "sectors": {
+        "communication_services": 1.0
+      },
+      "dividend_yield": 5.72,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "SHOP.TO": {
+      "currency": "CAD",
+      "long_name": "Shopify Inc.",
+      "quote_type": "EQUITY",
+      "sectors": {
+        "technology": 1.0
+      },
+      "dividend_yield": null,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2510
+    },
+    "NVDA": {
+      "currency": "USD",
+      "long_name": "NVIDIA Corporation",
+      "quote_type": "EQUITY",
+      "sectors": {
+        "technology": 1.0
+      },
+      "dividend_yield": 0.61,
+      "history_start": "2016-11-14",
+      "history_end": "2026-11-13",
+      "n_obs": 2514
+    }
+  }
+}

@@ -219,7 +219,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# Local data
-data/*
-!data/.gitkeep
+# Local/raw data (market snapshot in data/market is committed for reproducibility)
+data/raw/
 runs/

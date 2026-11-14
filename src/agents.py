@@ -52,7 +52,8 @@ def profile(persona, rule_eval, action):
     payload = {"investor": {k: persona[k] for k in ("name", "age", "knowledge_level", "risk_tolerance", "risk_tolerance_note", "goals")},
                "action": action, "goal_buckets_before": rule_eval["buckets_before"],
                "goal_buckets_after": rule_eval["buckets_after"],
-               "rule": "max risky share by horizon: <1y 0%, 1-3y 20%, 3-5y 40%, 5-10y 70%, 10y+ 100%; tolerance caps low 40%, medium 70%, high 100%"}
+               "rule": "max risky share by horizon: <1y 0%, 1-3y 20%, 3-5y 40%, 5-10y 70%, 10y+ 125%; tolerance caps low 40%, medium 70%, high 125%; "
+                       "risky share counts each crypto dollar as 3 risk units (volatility about 3x equities), so it can exceed 100%"}
     schema = ('{"tolerance_vs_capacity": str, "findings": [{"goal_id": str, "finding": str, "severity": "info"|"warning"|"critical"}], '
               '"question_for_investor": str}')
     return _call(role, payload, schema)
@@ -108,7 +109,9 @@ def guardian(persona, rule_eval, action):
 
 def judge(persona, action, bundle):
     style = {"novice": "Write for a beginner: short sentences, define any jargon in a few words, use one concrete dollar example.",
-             "sophisticated": "Write for an experienced investor: concise, precise, you may use standard terms."}[persona["knowledge_level"]]
+             "intermediate": "Write for an investor who knows the basics (ETFs, diversification): clear, brief, light jargon.",
+             "sophisticated": "Write for an experienced investor: concise, precise, you may use standard terms."}.get(
+        persona["knowledge_level"], "Write clearly for a non-specialist.")
     role = ("ROLE: Judge and explainer agent. Weigh the profile findings, market analysis, the advocate/skeptic debate, the "
             "guardian's review, and the computed counterfactual variants. Decide whether the investor's OWN idea, as proposed, "
             "is consistent with their stated goals, horizons and constraints. The rule_ceiling is the most permissive verdict "

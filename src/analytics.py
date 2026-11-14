@@ -16,6 +16,9 @@ from src.universe import FX_TICKER, GEO_LABELS, UNIVERSE
 
 MARKET_DIR = Path(__file__).resolve().parents[1] / "data" / "market"
 RISKY = {"equity", "crypto"}
+# Risk units per dollar when filling a goal's risky-asset budget (assumption):
+# crypto counts 3x because its historical volatility (~51%/yr for BTCC-B, 5y) is ~3x a broad equity index (~16%/yr for XSP).
+RISK_UNITS = {"equity": 1.0, "crypto": 3.0}
 
 # ---------------------------------------------------------------- market data
 
@@ -267,8 +270,10 @@ def stress_tests(holdings: list[dict]) -> list[dict]:
 # max share of a goal's money in risky assets (equity + crypto), by horizon.
 # Assumption: rules of thumb consistent with the kickoff's horizon guidance
 # (<3y cannot ride out a cycle, 3-10y partial, 10y+ can absorb a cycle).
-CAPACITY_RULES = [(1, 0.0), (3, 0.20), (5, 0.40), (10, 0.70), (999, 1.0)]
-TOLERANCE_CAP = {"low": 0.40, "medium": 0.70, "high": 1.0}
+# Limits are in equity-equivalent risk units (crypto = 3 units/dollar). 1.25 for 10y+/high lets a long-horizon,
+# high-tolerance goal hold an all-equity mix plus a crypto sleeve of up to ~12.5% of that goal: (1-x) + 3x <= 1.25.
+CAPACITY_RULES = [(1, 0.0), (3, 0.20), (5, 0.40), (10, 0.70), (999, 1.25)]
+TOLERANCE_CAP = {"low": 0.40, "medium": 0.70, "high": 1.25}
 
 
 def capacity_for_horizon(years: float) -> float:
@@ -284,7 +289,7 @@ def goal_buckets(persona: dict, holdings: list[dict]) -> list[dict]:
     for g in persona["goals"]:
         hs = [h for h in holdings if h.get("goal") == g["id"]]
         val = total_value(hs) if hs else 0.0
-        risky = sum(h["value_cad"] * sum(x for ac, x in _mix(h["ticker"]).items() if ac in RISKY) for h in hs)
+        risky = sum(h["value_cad"] * sum(x * RISK_UNITS[ac] for ac, x in _mix(h["ticker"]).items() if ac in RISKY) for h in hs)
         cap = capacity_for_horizon(g["horizon_years"])
         allowed = min(cap, TOLERANCE_CAP[tol])
         share = risky / val if val else 0.0
