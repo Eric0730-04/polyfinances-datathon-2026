@@ -204,18 +204,19 @@ Each variant is re-evaluated with the same rules.
 
 ## 6. User interface
 
-`server.py` (FastAPI) streams each pipeline stage to the browser over Server-Sent Events. `web/` is a framework-free interface whose layout borrows two established patterns:
-- **Portfolio X-ray** (look-through allocation by asset class, sector, region and currency, before vs after);
-- **pre-trade compliance checks** (rules with severity: hard limit vs preference; pass, breach or pre-existing).
+`server.py` (FastAPI) streams each pipeline stage to the browser over Server-Sent Events. `web/` is a framework-free interface (Chart.js for charts). It uses the layout conventions of modern investing apps:
 
-There are three views:
-
-- **Check an idea**
-  - The investor profile sits beside the request.
-  - Live pipeline progress.
-  - The verdict, then: why it holds and what would change it; computed variants; pre-trade checks; the risk budget by goal; the X-ray; stress tests; a security and company snapshot with its ESG screen; the agent debate; evidence and audit.
-- **Compare investors:** the same idea for every persona, run in parallel.
-- **Method & data:** risk units, limits, verdict rules, sources, macro context, AWS services.
+- **App shell:** a left navigation with the investors and a history of checks; the main workspace; a right panel with the profile, goals, limits (tagged stated, assumed or preference) and holdings with their risk multiple.
+- **Investor dashboard:**
+  - KPI tiles: risk budget used vs limit, portfolio value, cash buffer vs minimum, past volatility;
+  - an allocation donut;
+  - a holdings treemap, sized by weight and coloured by risk vs the S&P 500.
+- **Chat-style thread:** the investor asks in plain language. While the agents work, a **live agent-flow diagram** shows each one (Intake → Toolbox → Profile + Market → Debate → Guardian → Judge → Guardrail) with its latency.
+- **Answer card:**
+  - a verdict badge and a gauge of the goal's risk budget used;
+  - the interpreted action and how many numbers were verified;
+  - tabs: **Overview** (why, what would change it, computed variants), **Rules & limits** (pre-trade checks and risk budget by goal), **Portfolio X-ray** (before/after donuts and look-through tables), **Stress tests** (chart and table), **About the asset** (risk, company snapshot, ESG screen), **Agent debate**, **Evidence & audit** (facts / assumptions / fiction / limits, execution trace, sources, S3 record, raw outputs).
+- **Compare investors** and **How it works** views.
 
 When information is missing, the investor gets a **targeted follow-up question** and can answer it in place.
 It is built deterministically from structured issue codes: out-of-universe security (with an asset picker), missing amount (one-click amounts), unknown goal, an unclear request, or an attempt to override the rules. The raw codes stay in the audit trail.
