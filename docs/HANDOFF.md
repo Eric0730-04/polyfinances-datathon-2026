@@ -4,7 +4,7 @@
 > `docs/technical_documentation.md`, before changing anything.
 > Rules: never commit credentials; no AI or tool attribution in commits, docs or README (the work is credited to Team 10 only).
 
-_Last updated: 2026-11-14 (Team 10)_
+_Last updated: 2026-11-15 (Team 10)_
 
 ## 1. The challenge, in one paragraph
 
@@ -52,7 +52,7 @@ It never recommends what to buy.
 **Pipeline:**
 1. The intake agent parses the request.
 2. A deterministic toolbox computes every number. It never uses an LLM.
-3. A rules engine sets the most permissive verdict allowed and computes variants: smaller amount, new money, a swap.
+3. A rules engine sets the most permissive verdict allowed and computes variants: smaller amount, new money, a swap, a diversified fund, a longer-term goal.
 4. Profile and market-analyst agents run in parallel.
 5. Advocate and skeptic debate for 2 rounds.
 6. The guardian checks constraints vs preferences.
@@ -74,8 +74,8 @@ It never recommends what to buy.
 | Tests | ✅ 54 deterministic tests |
 | Create your own investor, what-if simulator, follow-up chat | ✅ in the app (see README "What you can do") |
 | UI update from Sarah (PR #1: question-first layout, before/after panel) | ✅ merged; three earlier fixes it overwrote were restored |
-| Evaluation | ✅ 36/36 correct, 18/18 stable, 772/775 numbers grounded, see `docs/evaluation.md` |
-| Technical documentation, one-pager, video script | ✅ in `docs/` |
+| Evaluation | ✅ 36/36 correct, 18/18 stable, 768/775 numbers grounded, see `docs/evaluation.md` |
+| Technical documentation, one-pager, video script | ✅ in `docs/`; PDFs of the tech doc and one-pager (1 page) rebuilt with `scripts/build_pdfs.sh` |
 | **Video recording** | ⏳ to do, script in `docs/video_script.md` |
 | **Team review of assumptions** (§5) | ⏳ to do |
 | Public demo link | ✅ AWS Lambda function URL (see §4), redeploy with `scripts/deploy_aws.py` |
@@ -135,7 +135,7 @@ Judges may ask about these. They are documented in `docs/technical_documentation
 | `src/universe.py` | 50-asset universe (31 official + 19 supplemental) + look-through assumptions |
 | `server.py`, `web/` | API + UI |
 | `personas/*.json` | Investor profiles, sample requests |
-| `scripts/` | `check_aws`, `setup_aws`, `run_case` (CLI), `evaluate`, `fetch_supplemental` |
+| `scripts/` | `check_aws`, `setup_aws`, `deploy_aws`, `run_case` (CLI), `evaluate`, `fetch_supplemental`, `fetch_extra_assets`, `build_pdfs.sh` |
 | `docs/` | Technical documentation, one-pager, video script, evaluation, official case |
 
 ## 7. Gotchas
@@ -144,14 +144,14 @@ Judges may ask about these. They are documented in `docs/technical_documentation
 
 - **Credentials expire.** "The AWS credentials have expired or are invalid" in the app means you need fresh ones from the workshop page and a server restart.
 - **Restart the server after code changes.** `uvicorn` isn't started with `--reload`.
-- **Cost:** a full evaluation (`scripts/evaluate.py`) is about 30 runs × 24k tokens. Fine, but don't loop it.
+- **Cost:** a full evaluation (`scripts/evaluate.py`) is 36 runs × about 25k tokens. Fine, but don't loop it.
+- **Docs:** edit the `.md` files, then run `scripts/build_pdfs.sh` (needs pandoc + MacTeX) so the PDFs match. Keep the one-pager to 1 page.
 - **Data:**
   - Only the 50 assets (31 official + 19 supplemental, `data/supplemental/assets_extra.csv`) can be analysed; anything else gets a follow-up question. Add more with `scripts/fetch_extra_assets.py`.
   - The ESG screen covers US stocks only.
 
 ## 8. Ideas if we have time
 
-- Host the demo on AWS (App Runner/ECS) so judges can click a link.
 - Multi-step plans ("sell X and buy Y and Z").
 - Let the investor confirm or edit the "assumed" limits in the UI.
 - Canadian ESG evidence (e.g. holdings of a Canadian ESG ETF).

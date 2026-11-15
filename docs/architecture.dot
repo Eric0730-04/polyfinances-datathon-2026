@@ -1,0 +1,31 @@
+digraph G {
+  rankdir=TB; newrank=true; nodesep=0.25; ranksep=0.35;
+  node [shape=box, style="rounded,filled", fillcolor="#ffffff", color="#333333", fontname="DejaVu Sans", fontsize=10];
+  edge [color="#444444", arrowsize=0.7, fontname="DejaVu Sans", fontsize=9];
+  subgraph cluster1 { label="1 · Understand the request, compute every number (deterministic)"; fontname="DejaVu Sans Bold"; fontsize=11; style="rounded,filled"; fillcolor="#eef4fb"; color="#9db8d9";
+    U [label="Investor request\n(free text)"];
+    P [label="Persona JSON\ngoals, horizons, tolerance,\nconstraints, preferences", shape=cylinder];
+    I [label="Intake agent (LLM)\nstructured action", fillcolor="#fff3e0"];
+    V [label="Validator\nticker, amount, goal", shape=diamond, style=filled];
+    X [label="? Needs more info\ntargeted follow-up question"];
+    D [label="Starter dataset\n+ supplemental data", shape=cylinder];
+    T [label="Deterministic toolbox (Python, no LLM)\nexposures · risk · stress tests · goal capacity\nconstraint checks · ESG view · macro\nrule ceiling · computed variants", fillcolor="#e8f5e9"];
+    {rank=same; U; I; V; T;} {rank=same; P; X; D;} U -> I; P -> I; I -> V; V -> X [label="invalid"]; V -> T [label="valid"]; D -> T;
+  }
+  subgraph cluster2 { label="2 · Agents reason over the computed numbers (Amazon Bedrock, Nova 2 Lite)"; fontname="DejaVu Sans Bold"; fontsize=11; style="rounded,filled"; fillcolor="#fff8ee"; color="#e0b77a";
+    PA [label="Profile agent  ∥  Market analyst\ntolerance vs capacity · what changes\n(run in parallel)", fillcolor="#fff3e0"];
+    DB [label="Advocate ⇄ Skeptic\ndebate, 2 rounds", fillcolor="#fff3e0"];
+    G2 [label="Guardian agent\nconstraints vs preferences", fillcolor="#fff3e0"];
+    J [label="Judge / explainer\nverdict, reasons, conditions,\nfacts / assumptions / fiction", fillcolor="#fff3e0"];
+    {rank=same; PA; DB; G2; J;} PA -> DB -> G2 -> J;
+  }
+  subgraph cluster3 { label="3 · Controls and output"; fontname="DejaVu Sans Bold"; fontsize=11; style="rounded,filled"; fillcolor="#f3eef9"; color="#b7a3d6";
+    E [label="Rule ceiling\nstricter, never\nmore permissive", shape=diamond, style=filled];
+    GC [label="Numeric grounding check\nevery % and $ traced to data"];
+    GR [label="Bedrock Guardrail\nblocks guaranteed returns + PII\nlogs trade instructions"];
+    UI [label="Web UI\nFastAPI + live streaming"];
+    S3 [label="Amazon S3\naudit trace per run", shape=cylinder];
+    {rank=same; GC; UI; GR; E;} GR -> E [dir=back]; UI -> GR [dir=back]; GC -> UI; GR -> S3;
+  }
+  T -> PA; J -> E;
+}

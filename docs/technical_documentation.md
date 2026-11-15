@@ -25,7 +25,7 @@ The brief asks exactly this of Robert: *"Can the system challenge a request that
 Each verdict comes with:
 - the specific reasons,
 - "this conclusion no longer holds if…" conditions,
-- **computed** variants of the same idea (smaller amount, different funding, a swap),
+- **computed** variants of the same idea (smaller amount, new money, a swap, a diversified fund, a longer-term goal),
 - before/after exposures and stress tests,
 - a labelled split of facts, assumptions, fictional elements and limits,
 - a full audit trace.
@@ -41,7 +41,7 @@ flowchart TD
     I --> V{Validator<br/>ticker, amount, goal}
     V -- invalid --> X[INSUFFICIENT_DATA<br/>+ clarification]
     V -- valid --> T[Deterministic toolbox, Python, no LLM<br/>exposures, risk, stress tests,<br/>goal capacity, constraint checks,<br/>ESG view, macro context,<br/>rule ceiling, counterfactuals]
-    D[(Starter dataset<br/>+ supplemental ETF sectors)] --> T
+    D[(Starter dataset<br/>+ supplemental data)] --> T
     T --> PR[Profile agent<br/>tolerance vs capacity]
     T --> AN[Market analyst agent<br/>what changes, using only computed numbers]
     PR --> DB
@@ -52,7 +52,7 @@ flowchart TD
     DB --> G[Guardian agent<br/>constraints and preferences]
     G --> J[Judge / explainer agent<br/>verdict, reasons, conditions,<br/>facts / assumptions / fiction]
     J --> E{Rule ceiling enforcement<br/>judge can be stricter, never more permissive}
-    E --> GR[Amazon Bedrock Guardrail<br/>no guaranteed returns, no trade instructions]
+    E --> GR[Amazon Bedrock Guardrail<br/>blocks guaranteed returns and PII,<br/>logs trade instructions]
     GR --> UI[Web UI<br/>FastAPI + live streaming]
     GR --> S3[(Amazon S3<br/>audit trace per run)]
     GC[Numeric grounding check<br/>every % and $ traced to data] --> UI
@@ -74,7 +74,7 @@ flowchart TD
 | Grounding check | Deterministic | Every percentage or dollar figure the agents write must match a value in the data (within rounding). Unmatched figures are flagged. |
 | Bedrock Guardrail | AWS managed | Last responsible-output screen on every user-facing string. |
 
-A full run makes 9 LLM calls, about 25k tokens and about 15 seconds (measured in `evaluation.md`). The optional follow-up chat is a 10th agent, called only when the investor asks a question. Profile and analyst run in parallel, and so does each debate round.
+A full run makes 9 LLM calls, about 25k tokens and about 14 seconds (measured in `evaluation.md`). The optional follow-up chat is a 10th agent, called only when the investor asks a question. Profile and analyst run in parallel, and so does each debate round.
 
 ---
 
@@ -82,8 +82,8 @@ A full run makes 9 LLM calls, about 25k tokens and about 15 seconds (measured in
 
 | Service | Role in the flow | Why this service |
 |---|---|---|
-| **Amazon Bedrock**, model `global.amazon.nova-2-lite-v1:0` (Converse API) | All 9 agent calls | Small, fast, low-cost model recommended by the workshop. Accuracy measured in §8 is sufficient, so no larger model is needed. Model is configurable via `BEDROCK_MODEL_ID`. |
-| **Amazon Bedrock Guardrails** (`secondlook-responsible-output`) | Screens every user-facing string. **Blocks:** guaranteed-return claims, word filters, PII (SIN, card, bank account). **Detects and logs without blocking:** trade-instruction language (see §8) | Enforces the simulation-only boundary independently of the prompts. |
+| **Amazon Bedrock**, model `global.amazon.nova-2-lite-v1:0` (Converse API) | All 9 agent calls | Small, fast, low-cost model recommended by the workshop. Accuracy measured in §9 is sufficient, so no larger model is needed. Model is configurable via `BEDROCK_MODEL_ID`. |
+| **Amazon Bedrock Guardrails** (`secondlook-responsible-output`) | Screens every user-facing string. **Blocks:** guaranteed-return claims, word filters, PII (SIN, card, bank account). **Detects and logs without blocking:** trade-instruction language (see §9) | Enforces the simulation-only boundary independently of the prompts. |
 | **AWS Lambda + Amazon ECR** (function `secondlook`, public HTTPS function URL) | Hosts the public demo. The FastAPI app runs unchanged in a container (ECR) through the AWS Lambda Web Adapter, with response streaming so agent progress arrives live. | Scales to zero between demos (no idle cost), HTTPS out of the box. Reserved concurrency (20) is a hard cap on simultaneous requests; per-visitor hourly quotas sit in the app. The execution role is least-privilege: Bedrock invoke, this guardrail, this bucket. |
 | **Amazon S3** (`secondlook-<account>-us-east-1`; private, versioned, SSE-encrypted, public access blocked) | One JSON audit trace per analysis (`traces/<date>/<persona>/<run_id>.json`); copy of market inputs | Reproducibility and governance. Any verdict can be re-examined later. |
 
@@ -101,17 +101,19 @@ Provisioning is idempotent: `scripts/setup_aws.py`. Credentials are never stored
 
 ### 4.1 Sources
 
-| Data | Source | Date | Used for |
-|---|---|---|---|
-| Daily prices, `adj_close` (31 assets) | AlphaForge starter pack: Yahoo Finance via yfinance | 2021-11-12 to 2026-11-12, retrieved 2026-11-13 | Volatility, drawdowns, risk units, historical stress replays |
-| Daily prices for **19 supplemental assets** | **Supplemental**: same source, window and format (`scripts/fetch_extra_assets.py` → `data/supplemental/prices_extra.csv`), validated for duplicates, gaps and non-positive prices | 2021-11-12 to 2026-11-12 | Fill gaps the personas expose. **International:** XEF.TO, XEC.TO, XEQT.TO. **Canadian ESG and clean energy:** XESG.TO, ICLN. **Established and income names:** BRK-B, KO, COST, BNS.TO, BCE.TO, L.TO, VDY.TO, CASH.TO. **AI and growth names investors ask about:** META, AMD, PLTR, LLY. **Other:** SOL-USD, ABX.TO. |
-| USD/CAD | Starter pack: Bank of Canada Valet FXUSDCAD | same window | Convert USD assets to CAD |
-| Policy rate, GoC 2y/10y, CPI (CA), US rates | Starter pack: Bank of Canada Valet, FRED | same window | Cash accrual, macro context, real cash yield |
-| Asset universe and GICS sectors | Starter pack `assets_universe.csv` | static | Sector of single stocks, asset class |
-| ETF sector weights: XIU.TO, SPY, QQQ, ESGV | **Supplemental**: Yahoo fund breakdown via yfinance | snapshot, see `data/supplemental/etf_sector_weights.json` | Sector concentration and ESG (Energy) look-through |
-| ESG screen for US stocks | **Supplemental**: SEC EDGAR Form N-PORT, Vanguard ESG U.S. Stock ETF (ESGV) schedule of investments | holdings as of 2026-05-31, filed 2026-07-29, so available before our as-of date | A held stock passed ESGV's index screens (fossil fuels, weapons, controversies…); a stock not held was excluded. In our universe, **XOM and JNJ are excluded**; the reason is not disclosed. Canadian stocks are not covered. |
-| Company fundamentals (20 stocks) | **Supplemental**: Yahoo quote summary via yfinance | snapshot at fetch date | Context for "established company / quality" (size, margins, leverage, growth, listing age). Never used as a forecast or in a rule. |
-| Personas and portfolios | **Fictional**, based on the official brief (Amira, Mateo, Robert) + one optional scenario (Maya) | n/a | Context |
+| Data | Source | Date | Used for | Access and reuse terms |
+|---|---|---|---|---|
+| Daily prices, `adj_close` (31 assets) | AlphaForge starter pack: Yahoo Finance via yfinance | 2021-11-12 to 2026-11-12, retrieved 2026-11-13 | Volatility, drawdowns, risk units, historical stress replays | [Yahoo terms](https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html); educational, non-commercial use |
+| Daily prices for **19 supplemental assets** | **Supplemental**: same source, window and format (`scripts/fetch_extra_assets.py` → `data/supplemental/prices_extra.csv`), validated for duplicates, gaps and non-positive prices | 2021-11-12 to 2026-11-12 | Fill gaps the personas expose. **International:** XEF.TO, XEC.TO, XEQT.TO. **Canadian ESG and clean energy:** XESG.TO, ICLN. **Established and income names:** BRK-B, KO, COST, BNS.TO, BCE.TO, L.TO, VDY.TO, CASH.TO. **AI and growth names investors ask about:** META, AMD, PLTR, LLY. **Other:** SOL-USD, ABX.TO. | [Yahoo terms](https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html); educational, non-commercial use |
+| USD/CAD | Starter pack: Bank of Canada Valet FXUSDCAD | same window | Convert USD assets to CAD | [Bank of Canada terms](https://www.bankofcanada.ca/terms/) |
+| Policy rate, GoC 2y/10y, CPI (CA), US rates | Starter pack: Bank of Canada Valet, FRED | same window | Cash accrual, macro context, real cash yield | [Bank of Canada terms](https://www.bankofcanada.ca/terms/); [FRED terms](https://fred.stlouisfed.org/legal/) |
+| Asset universe and GICS sectors | Starter pack `assets_universe.csv` | static | Sector of single stocks, asset class | Free to use within the datathon (organizers) |
+| ETF sector weights for the 10 equity ETFs (XIU.TO, SPY, QQQ, ESGV, XEF.TO, XEC.TO, XEQT.TO, VDY.TO, XESG.TO, ICLN) | **Supplemental**: Yahoo fund breakdown via yfinance | snapshot, see `data/supplemental/etf_sector_weights.json` | Sector concentration and ESG (Energy) look-through | [Yahoo terms](https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html); educational, non-commercial use |
+| ESG screen for US stocks | **Supplemental**: SEC EDGAR Form N-PORT, Vanguard ESG U.S. Stock ETF (ESGV) schedule of investments | holdings as of 2026-05-31, filed 2026-07-29, so available before our as-of date | A held stock passed ESGV's index screens (fossil fuels, weapons, controversies…); a stock not held was excluded. In our universe, **XOM and JNJ are excluded**; the reason is not disclosed. Canadian stocks are not covered. | Public SEC filing; access follows the [SEC EDGAR fair-access policy](https://www.sec.gov/os/accessing-edgar-data) |
+| Company fundamentals (20 stocks) | **Supplemental**: Yahoo quote summary via yfinance | snapshot at fetch date | Context for "established company / quality" (size, margins, leverage, growth, listing age). Never used as a forecast or in a rule. | [Yahoo terms](https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html); educational, non-commercial use |
+| Personas and portfolios | **Fictional**, based on the official brief (Amira, Mateo, Robert) + one optional scenario (Maya) | n/a | Context | Fictional; no personal or client data |
+
+Data from Yahoo Finance (via the open-source yfinance library) is used only for this educational, non-commercial simulation; it is not exchange-certified and should not be redistributed beyond reproducing this project. Starter-pack terms for each file are in `data/starter/sources_metadata.csv`.
 
 ### 4.2 Processing (`src/analytics.py`)
 
@@ -122,7 +124,7 @@ Provisioning is idempotent: `scripts/setup_aws.py`. Credentials are never stored
    - prices carried forward at most 4 days;
    - risk metrics on **weekly Friday closes**, labelled by the last real trading date.
 4. `CASH` is a synthetic line that accrues the BoC overnight target daily (assumption: a high-interest savings account earns about the policy rate).
-5. **Risk units** = an asset's weekly annualised volatility ÷ SPY's, both in CAD over the full window (SPY = 1.0). For example: ZST 0.03, XBB 0.44, SPY 1.00, NVDA 3.14, BTC 3.40, TSLA 3.74, SHOP 4.37, ETH 4.40.
+5. **Risk units** = an asset's weekly annualised volatility ÷ SPY's, both in CAD over the full window (SPY = 1.0). For example: ZST 0.03, XBB 0.44, SPY 1.00, NVDA 3.14, BTC 3.40, TSLA 3.74, SHOP 4.37, ETH 4.39.
 6. **Macro point-in-time:** monthly CPI is dated to its reference month. We only use months published by the as-of date, assuming a 50-day lag. On 2026-11-12 the latest usable Canadian CPI is September 2026 (3.1% y/y). The real cash yield is about 2.5% − 3.1% = −0.6%.
 
 ### 4.3 Known data limits
@@ -181,12 +183,14 @@ The same logic applies to every check:
 
 The judge LLM may be more cautious than the ceiling, but only by naming a specific issue ("Beyond the rules: …"). It can never be more permissive; this is enforced in code.
 
-**Counterfactual variants are computed, not generated.** They are:
-- (a) the same idea funded with new money,
-- (b) a swap that trims the largest single-security position in the same goal,
-- (c) the largest amount, by bisection, that does not create an INCONSISTENT result.
+**Counterfactual variants are computed, not generated.** Where they apply, they are:
+- (a) the same idea funded with new money;
+- (b) a swap that trims the largest single-security position in the same goal;
+- (c) the same theme through a diversified fund instead of a single stock (e.g. QQQ instead of TSLA or NVDA; the closest broad fund in the universe is an assumption);
+- (d) the same purchase, with new money, for the investor's longest-horizon goal, when the money's own goal is more than 2 years shorter;
+- (e) when the idea is INCONSISTENT, the largest amount, by bisection in $250 steps, that is no longer INCONSISTENT.
 
-Each variant is re-evaluated with the same rules.
+Each variant is re-evaluated with the same rules. The app shows the variants that change the verdict, or "The verdict holds" when none does.
 
 ### 5.4 Stress tests
 
@@ -319,7 +323,7 @@ Robert asks: *"Everyone is talking about Tesla. I want to move $60,000 from my X
    | Never more permissive than expected | 36/36 |
    | Intake picked the right security | 36/36 |
    | Same verdict on both repeats | 18/18 cases |
-   | Figures traced to data | 772/775 |
+   | Figures traced to data | 768/775 |
    | Judge corrected by the ceiling | 0 |
    | Guardrail blocks after calibration | 0 (detections logged) |
 

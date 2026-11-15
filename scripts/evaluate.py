@@ -83,7 +83,7 @@ def main():
         by_case[r["case"]].append(r)
     stable = sum(1 for v in by_case.values() if len({x["verdict"] for x in v}) == 1)
     checked = sum(r["grounding"].get("checked", 0) for r in ok)
-    ungrounded = sum(len(r["grounding"].get("ungrounded", [])) for r in ok)
+    ungrounded = sum(r["grounding"].get("unmatched", len(r["grounding"].get("ungrounded", []))) for r in ok)
     llm_runs = [r for r in ok if r["tokens"]]
     lines = [
         "# Evaluation: end-to-end pipeline",

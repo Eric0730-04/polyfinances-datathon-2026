@@ -57,5 +57,6 @@ def check(agent_output, *sources):
             tol = 0.6 if m.group("pct") else max(1.0, v * 0.01)
             if not any(abs(v - c) <= tol for c in candidates):
                 flagged.append(m.group(0).strip())
-    return {"checked": total, "ungrounded": sorted(set(flagged)),
+    # "unmatched" counts every occurrence (same basis as "summary"); "ungrounded" lists the distinct values
+    return {"checked": total, "unmatched": len(flagged), "ungrounded": sorted(set(flagged)),
             "summary": f"{total - len(flagged)}/{total} figures traced to data" if total else "no figures cited"}

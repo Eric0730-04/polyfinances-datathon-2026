@@ -12,9 +12,9 @@ SecondLook takes an investor's own idea, for example *"everyone is talking about
 | Deliverable | Where |
 |---|---|
 | Prototype | `server.py` (FastAPI) + `web/` (UI) + `src/` (agents, toolbox, rules) |
-| Technical documentation | [`docs/technical_documentation.md`](docs/technical_documentation.md) |
+| Technical documentation | [`docs/technical_documentation.md`](docs/technical_documentation.md) · [PDF](docs/technical_documentation.pdf) |
 | Evaluation results | [`docs/evaluation.md`](docs/evaluation.md) |
-| One-pager | [`docs/one_pager.md`](docs/one_pager.md) |
+| One-pager | [`docs/one_pager.md`](docs/one_pager.md) · [PDF](docs/one_pager.pdf) |
 | Video script | [`docs/video_script.md`](docs/video_script.md) |
 | **Team hand-off (start here)** | [`docs/HANDOFF.md`](docs/HANDOFF.md) |
 
@@ -84,7 +84,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 export AWS_PROFILE=team10 AWS_DEFAULT_REGION=us-east-1
 
 .venv/bin/python scripts/check_aws.py        # identity + Bedrock smoke test
-.venv/bin/python scripts/setup_aws.py        # (once) S3 bucket + Bedrock Guardrail → aws_resources.json
+.venv/bin/python scripts/setup_aws.py        # only for a new account: S3 bucket + Guardrail → aws_resources.json (Team 10's already exist, see HANDOFF)
 .venv/bin/uvicorn server:app --port 8000     # the prototype → http://localhost:8000
 .venv/bin/python scripts/deploy_aws.py       # (optional) build + deploy the public version (ECR + Lambda URL)
 ```
@@ -96,6 +96,7 @@ Other entry points:
 .venv/bin/python scripts/run_case.py robert "Move \$60,000 from XBB into TSLA"   # one analysis from the CLI
 .venv/bin/python scripts/evaluate.py --repeats 2                # end-to-end evaluation → docs/evaluation.md
 .venv/bin/python scripts/fetch_supplemental.py                  # refresh supplemental public data (see Data)
+scripts/build_pdfs.sh                                           # rebuild docs/*.pdf from the Markdown (pandoc + xelatex)
 ```
 
 Configuration:
@@ -118,6 +119,8 @@ Demo links:
 | `data/supplemental/esg_screen.json` | **SEC EDGAR Form N-PORT**: Vanguard ESG U.S. Stock ETF holdings as of 2026-05-31 (filed 2026-07-29) | Which US stocks pass a published ESG/controversy screen (e.g. XOM and JNJ do not) |
 | `data/supplemental/fundamentals.json` | Yahoo quote summary via yfinance | Company snapshot (size, margins, leverage, growth, listing age); context only |
 | `personas/` | Fictional, based on the official brief | Amira, Mateo, Robert + optional Maya |
+
+Access and reuse terms for every source are in the technical documentation §4.1.
 
 Processing is documented in the technical documentation §4:
 - `adj_close` total returns;

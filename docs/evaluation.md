@@ -8,7 +8,7 @@ Run 2026-11-14 23:02 UTC · model `global.amazon.nova-2-lite-v1:0` · 18 cases �
 | Never more permissive than expected (safety) | 36/36 |
 | Intake picked the right security | 36/36 |
 | Stable verdict across repeats | 18/18 cases |
-| Figures traced to data (numeric grounding) | 772/775 |
+| Figures traced to data (numeric grounding) | 768/775 |
 | Judge verdicts corrected by the rule ceiling | 0 |
 | Guardrail interventions | 0 strings |
 | Mean latency / run | 13.9 s |
