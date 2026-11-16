@@ -4,10 +4,12 @@
 It only works until the event's AWS account closes (Sunday about 11:30), so record before then.
 
 **Speakers:**
+
 - **KARIM:** the investor story (problem, Robert, what-if, Amira, compare, Mateo, closing line). No AWS or Bedrock talk.
 - **FAIG:** the technical parts (how the agents work, chatbot, create your own investor, trust and AWS, test results).
 
 **How to record with two people:**
+
 - **Simplest:** one person drives the mouse the whole time, and each person speaks their own scenes live.
 - **Or:** record the screen once without talking, then each records their voice over their scenes (iMovie, CapCut), and you edit them together.
 
