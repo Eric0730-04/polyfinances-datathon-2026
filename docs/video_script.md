@@ -113,19 +113,25 @@ Keep this PDF open on a second screen or a phone. The script is not inside the a
 
 **Point at:** the red tag, then the **QQQ** row in the versions table.
 
-## Scene 7 · KARIM · Same idea, four investors (2:55–3:25)
+## Scene 7 · KARIM · Same idea, four investors (2:55–3:35)
 
 **Click:** **Compare investors** in the left menu. The four results are already there. **Do not click the Bitcoin chip again.**
 
-> "The challenge asks to show adaptation to context. Same idea, $2,000 of Bitcoin, four different answers. Amira: consistent, a small slice of long-term money. Robert and Mateo: consistent only under conditions, because it goes against what they said they prefer. Maya, saving for a condo: inconsistent, because it would push her small retirement pot over its risk limit."
+> "The challenge asks to show adaptation to context. Same idea, $2,000 of Bitcoin, four different answers. Amira: consistent, a small slice of long-term money. Robert and Mateo: consistent only under conditions, because it goes against what they said they prefer. And Maya, an extra investor we added, 27 and saving for a condo she needs in two and a half years: inconsistent."
 
-## Scene 8 · KARIM · Mateo and ESG (3:25–3:55)
+**Then click:** **Open full analysis →** at the bottom of **Maya's** column. Her full answer opens, with the same layout as Robert's.
+
+> "Any column opens into the full analysis. For Maya, even $2,000 of Bitcoin would push her small retirement pot over its risk limit, and here are the exact numbers behind it."
+
+**Point at:** the red tag and the **Before → after this idea** panel.
+
+## Scene 8 · KARIM · Mateo and ESG (3:35–4:00)
 
 **Click:** **HISTORY → Mateo · Add $8,000…** (preloaded), then the **About JNJ** tab.
 
 > "Mateo cares about ESG and wants to avoid controversial companies. We went beyond the starter data: from a public SEC filing, we know which US companies Vanguard's ESG fund actually holds, and Johnson & Johnson is not one of them. So SecondLook flags a conflict. And it's honest: the filing doesn't say why it's excluded, and Canadian stocks aren't covered."
 
-## Scene 9 · FAIG · Create your own investor (3:55–4:20)
+## Scene 9 · FAIG · Create your own investor (4:00–4:25)
 
 **Click:** **Create your own investor** (left menu, under the investors).
 
@@ -136,7 +142,7 @@ Keep this PDF open on a second screen or a phone. The script is not inside the a
 
 > "SecondLook isn't limited to our personas. Anyone can describe their own goals, horizons and limits, see their risk budget instantly, and then check any idea against their own profile, the same way."
 
-## Scene 10 · FAIG · Trust and AWS (4:20–4:45)
+## Scene 10 · FAIG · Trust and AWS (4:25–4:50)
 
 **Click:** **HISTORY → Robert · Everyone is talking about Tesla…**, then the **Evidence & audit** tab.
 
@@ -144,7 +150,7 @@ Keep this PDF open on a second screen or a phone. The script is not inside the a
 
 > "Every run is auditable. Every percentage and dollar figure the agents write is checked against the data. A Bedrock Guardrail screens the output for things like guaranteed returns, the full trace of every agent is saved to Amazon S3, and the app runs on AWS Lambda. We tested it on 36 live runs, including a prompt-injection attempt: every verdict matched the profile, and none was more lenient than the rules allow."
 
-## Scene 11 · KARIM · Close (4:45–5:00)
+## Scene 11 · KARIM · Close (4:50–5:05)
 
 **Screen:** scroll back to the top of Robert's answer (the red tag and the Before → after panel).
 
