@@ -96,6 +96,15 @@ async function boot() {
   if (qs.get("q")) ask(qs.get("q"));
   if (qs.get("compare")) { showView("compare"); $("#compareRequest").value = qs.get("compare"); compare(); }
   if (qs.get("ask") && qs.get("run")) state.pendingChat = qs.get("ask");  // demo/test: open a run and ask a follow-up
+  if (qs.get("runs") || qs.get("cmp")) {  // restore a prepared session (e.g. for recording the demo), chats start empty
+    try {
+      const ids = (qs.get("runs") || "").split(",").map((x) => x.trim()).filter(Boolean);
+      const traces = await Promise.all(ids.map((id) => fetch(`/api/trace/${encodeURIComponent(id)}`).then(ok)));
+      traces.forEach((t) => { if (persona(t.persona_id)) { state.pid = t.persona_id; addDone(t.persona_id, t.request, t); } });
+      if (qs.get("cmp")) await restoreCompare(qs.get("cmp").split(",").map((x) => x.trim()).filter(Boolean));
+      if (traces.length) { showView("check"); selectPersona(traces.at(-1).persona_id); window.scrollTo(0, 0); }
+    } catch (e) { $("#thread").innerHTML = errorCard(e.f || { title: "Couldn't restore the session", technical: String(e) }); }
+  }
   if (qs.get("run")) {
     try {
       const t = await fetch(`/api/trace/${encodeURIComponent(qs.get("run"))}`).then(ok);
@@ -783,24 +792,39 @@ function renderComparePills() {
   $("#compareSuggestions").innerHTML = ps.map((s) => `<button class="pill">${esc(s)}</button>`).join("");
   $$("#compareSuggestions .pill").forEach((b) => b.addEventListener("click", () => { $("#compareRequest").value = b.textContent.trim(); compare(); }));
 }
+const ccWho = (p) => `<div class="who"><div class="avatar" style="background:${pcolor(p)}">${initials(p)}</div><div><b>${esc(p.name)}, ${p.age}</b><span>${esc(RISK[p.risk_tolerance])} risk</span></div></div>`;
+function fillCompareCard(el, p, t, req) {
+  const r = t.result, v = vinfo(r.verdict), g = goalOfAction(t);
+  el.style.setProperty("--vc", `var(--${v.cls})`);
+  el.innerHTML = `${ccWho(p)}<div>${pill(r.verdict)}</div><div class="hl">${esc(r.headline)}</div>
+    ${g ? `<div class="small muted">Goal risk ${pct(g.risky_share)} vs limit ${pct(g.allowed_max_risky)}</div>` : ""}
+    <ul>${(r.key_reasons || []).slice(0, 3).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+    <button class="link" data-open="${p.id}">Open full analysis →</button>`;
+  el.querySelector("[data-open]").addEventListener("click", () => openAnalysis(p.id, req, t));
+}
+// Restore a finished comparison from saved runs (S3 audit records), without re-running anything.
+async function restoreCompare(ids) {
+  const order = state.personas.map((p) => p.id);
+  const traces = (await Promise.all(ids.map((id) => fetch(`/api/trace/${encodeURIComponent(id)}`).then(ok))))
+    .sort((a, b) => order.indexOf(a.persona_id) - order.indexOf(b.persona_id));
+  const req = traces[0].request;
+  $("#compareRequest").value = req;
+  $("#compareTable").innerHTML = "";
+  $("#compareGrid").innerHTML = traces.map((t) => `<div class="card ccard" id="cc-${t.persona_id}"></div>`).join("");
+  traces.forEach((t) => { const p = persona(t.persona_id); if (p) fillCompareCard(document.getElementById(`cc-${p.id}`), p, t, req); });
+}
 async function compare() {
   const req = $("#compareRequest").value.trim();
   if (!req) { $("#compareRequest").focus(); return; }
   $("#compareBtn").disabled = true;
-  const who = (p) => `<div class="who"><div class="avatar" style="background:${pcolor(p)}">${initials(p)}</div><div><b>${esc(p.name)}, ${p.age}</b><span>${esc(RISK[p.risk_tolerance])} risk</span></div></div>`;
+  const who = ccWho;
   $("#compareTable").innerHTML = "";
   $("#compareGrid").innerHTML = state.personas.map((p) => `<div class="card ccard" id="cc-${p.id}">${who(p)}<div class="skeleton" style="width:60%"></div><div class="skeleton"></div><div class="skeleton" style="width:80%"></div></div>`).join("");
   try {
     await sse("/api/compare", { request: req, custom_personas: state.personas.filter((x) => x.custom).slice(0, 3).map((x) => x.def) }, (ev, d) => {
       const p = persona(d.persona_id), el = document.getElementById(`cc-${p.id}`);
       if (ev === "error") { el.innerHTML = `${who(p)}${errorCard(d)}`; return; }
-      const t = d.trace, r = t.result, v = vinfo(r.verdict), g = goalOfAction(t);
-      el.style.setProperty("--vc", `var(--${v.cls})`);
-      el.innerHTML = `${who(p)}<div>${pill(r.verdict)}</div><div class="hl">${esc(r.headline)}</div>
-        ${g ? `<div class="small muted">Goal risk ${pct(g.risky_share)} vs limit ${pct(g.allowed_max_risky)}</div>` : ""}
-        <ul>${(r.key_reasons || []).slice(0, 3).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-        <button class="link" data-open="${p.id}">Open full analysis →</button>`;
-      el.querySelector("[data-open]").addEventListener("click", () => openAnalysis(p.id, req, t));
+      fillCompareCard(el, p, d.trace, req);
     });
   } catch (e) { $("#compareGrid").innerHTML = errorCard(e.f || { title: "Comparison failed", technical: String(e) }); }
   finally { $("#compareBtn").disabled = false; }
