@@ -1,20 +1,112 @@
-# Demo video script (about 5 minutes)
+# Demo video: click-by-click script (about 5 minutes)
 
-**Setup:** use the live link (README) or run `uvicorn server:app --port 8000` locally. Open it once before recording so the first load (~10 s on the live link) is out of the way. Persona sidebar visible. AWS console tabs ready: S3 bucket and Bedrock Guardrail.
+**Live app:** https://isybdeoz22wyqq4tccdermfuvq0zwugt.lambda-url.us-east-1.on.aws
+It only works until the event's AWS account closes (Sunday about 11:30), so record before then.
 
-| Time | On screen | Voice-over (suggested) |
-|---|---|---|
-| 0:00–0:30 | Title, then the official brief's Robert page | "Self-directed investors have endless data but no one to tell them when an idea doesn't fit *them*. The brief asks: can a system challenge a request that conflicts with the investor's profile instead of simply agreeing? That's SecondLook." |
-| 0:30–1:10 | Architecture diagram (technical documentation §2) | "Nine Amazon Bedrock calls, each with one job: intake, profile, market analyst, advocate and skeptic debating, a guardian, and a judge. The key design choice: agents never compute numbers. A deterministic toolbox on the official starter data does. A rules engine caps the verdict, so the AI can be more cautious but never more permissive." |
-| 1:10–2:20 | Robert selected → "Everyone is talking about Tesla… move $60,000 from XBB into TSLA" → agents run → ✖ verdict; point at the **Before → after this idea** panel | "Robert is 59, low-to-moderate risk, three to five years from retirement. SecondLook says inconsistent. His retirement money goes from 56% to 111% of S&P-500-equivalent risk, against a 65% limit, and Tesla would be 16% of his portfolio." Open **Why**: "Here's what would change the answer, and the computed variants. A $10,000 version fits his limits but still conflicts with his stated preference for stability. Information, not advice." |
-| 2:20–2:50 | **What-if simulator** tab: drag the amount down, switch the goal, change the horizon, and watch the verdict flip live. Then ask the follow-up chat "What if I bought Apple instead?" | "Every figure is computed on the starter data, in CAD: Tesla's volatility is 3.7 times the S&P 500's. Replaying 2022, his portfolio would have lost 14% instead of 10%." |
-| 2:50–3:40 | **Compare investors**: "Put $2,000 of new money into Bitcoin.", then "AI is the future. Put $15,000 of new money into NVIDIA." | "Same idea, four investors, four different answers. A small bitcoin position fits Amira, conflicts with Robert's and Mateo's stated preferences, and breaks Maya's small retirement budget. And for NVIDIA: Amira is high-risk, but high risk isn't anything goes. It would be 29% of her portfolio and push tech above the 50% she implied." |
-| 3:40–4:10 | Mateo: "Add $8,000 of new money to Johnson & Johnson" → ◐ → ESG section | "For Mateo, non-financial criteria matter. We went beyond the starter data: from a public SEC filing we know which US companies Vanguard's ESG fund holds. J&J is excluded, so SecondLook flags a conflict with his wish to avoid controversial companies. It is honest that the filing doesn't say why, and that Canadian stocks aren't covered." |
-| 4:10–4:25 | **Create your own investor**: pick the "Saving for a house" template, Save, then ask "Move $15,000 into Tesla" | "And it isn't limited to our personas: anyone can describe their own goals and limits, and SecondLook checks ideas against them the same way." |
-| 4:25–4:45 | **Evidence and audit trail** section → S3 trace in the AWS console → Guardrail page | "Every run is auditable: each agent's output, tokens, latency, and a grounding score. Every percentage and dollar figure is traced to the data. The trace is stored in Amazon S3, and a Bedrock Guardrail screens the output for guaranteed-return claims." |
-| 4:45–5:05 | `docs/evaluation.md` table | "We tested it: 36 live runs including a prompt-injection attempt. 36 of 36 verdicts matched what the profile implies, none was more permissive, and repeats were stable. SecondLook: a second look before you act." |
+## Before you record (not filmed)
 
-**Recording tips**
-- Run each scenario once before recording, so the results stay in session state and switching tabs is instant.
-- Keep the disclaimer banner visible.
-- Say "simulation", never "recommendation".
+1. **Wake the app up:** open the link once and wait about 10 s. The first load after a quiet period is slow; after that it's fast.
+2. **Pre-run the analyses.** Each analysis takes about 15 s. Do the runs below once *before* recording; the left menu's **History** then reopens them instantly. You can also cut the waiting time in editing.
+   - Robert → chip **TSLA · $60k from XBB**
+   - Mateo → chip **JNJ · $8k new money**
+   - Compare investors → **Put $2,000 of new money into Bitcoin.**
+3. **Screen set-up:**
+   - Chrome full screen, zoom 110% (Cmd +), other tabs closed, notifications off.
+   - Never show the terminal or anything with AWS keys.
+   - Record with **Cmd + Shift + 5** (macOS) or QuickTime.
+4. **Voice:** read the lines below or say them in your own words. Always say "simulation", never "recommendation".
+
+---
+
+## Scene 1: The problem (0:00–0:25)
+
+**Screen:** the app home page with **Robert, 59** selected (left menu → Investors → Robert).
+
+**Say:**
+> "Self-directed investors have more data than ever, but nobody tells them when an idea doesn't fit *them*. The challenge asks: can a system push back when a request conflicts with the investor's profile, instead of simply agreeing? This is SecondLook."
+
+**Point at:** Robert's tags (low-moderate risk, 3–5 years horizon), then scroll to **Robert's portfolio today** (risk used 56% of 65% allowed, $385,000 portfolio).
+
+## Scene 2: How it works (0:25–0:55)
+
+**Click:** **How it works** in the left menu. Scroll slowly through the first two sections. (Or show `docs/architecture.png` for a few seconds.)
+
+**Say:**
+> "Nine AI agents on Amazon Bedrock each have one job: read the request, check the profile, analyse the market impact, argue for and against in a debate, check the rules, and write the verdict. The key design choice is that the AI never invents numbers. Plain code computes every figure from the official starter data, and a rules engine caps the verdict: the AI can be stricter than the rules, never more lenient."
+
+## Scene 3: Robert wants Tesla (0:55–2:00)
+
+**Click:** **Check an idea** → Robert → the chip **TSLA · $60k from XBB** (or reopen it from History).
+
+**While the agents run, say:**
+> "Robert is 59, low-to-moderate risk, a few years from retirement, and everyone is talking about Tesla."
+
+**When the answer appears, point at, in order:**
+1. The red tag **Inconsistent with profile**, and the headline.
+2. The **Before → after this idea** panel:
+   > "His retirement money would go from 56% to 111% of S&P 500-equivalent risk, against a 65% limit, and Tesla would become 15.6% of his portfolio, above his 10% single-stock limit."
+3. **How the agents reached this:** the row of agent steps with their timings.
+4. **Versions of this idea that would change the verdict:**
+   > "SecondLook also recomputes other versions of the same idea. A $10,000 version fits his limits, but still conflicts with his preference for stable companies. This is information, not advice."
+5. Click **Why this verdict, and what would change it** to open it, show it for 2 seconds, then close it.
+
+## Scene 4: What-if simulator (2:00–2:35)
+
+**Click:** the **What-if simulator** tab.
+
+**Do:**
+1. Drag **Amount** slowly from $60,000 down to **$10,000**. The verdict flips from **Inconsistent** to **With conditions**.
+   > "Every change is recomputed instantly by the rules engine, with no AI needed."
+2. Drag the amount back to $60,000, then change **Asset** to **SPY · SPDR S&P 500 ETF Trust**. The verdict flips to **Consistent**.
+   > "The same $60,000 in the whole S&P 500, instead of one volatile stock, fits his profile."
+
+## Scene 5: Follow-up chat (2:35–3:00)
+
+**Do:** go back to the **Overview** tab and scroll to **Ask a follow-up about this answer**. Type **Should I buy Apple instead?** and click **Ask**.
+
+**Say:**
+> "You can ask follow-up questions. The chat answers only from this analysis, and what-if questions like this one are computed by the rules engine, not guessed by the AI. Here's the instant check, and a button to run the full analysis."
+
+(Optional: click the chip **How did this do in 2022?**)
+
+## Scene 6: Same idea, four investors (3:00–3:40)
+
+**Click:** **Compare investors** → the chip **Put $2,000 of new money into Bitcoin.**
+
+**Say, pointing at each column:**
+> "The challenge asks to show adaptation to context. Same idea, four different answers. **Amira**, 26 and high risk: consistent, because it's a small slice of long-term money. **Robert** and **Mateo**: consistent with conditions, because it conflicts with their stated preferences. **Maya**, saving for a condo: inconsistent, because it would push her small retirement pot over its risk limit. And high risk isn't 'anything goes': Amira's $15,000 NVIDIA idea breaks her own limits."
+
+## Scene 7: Mateo and ESG (3:40–4:10)
+
+**Click:** left menu → **Mateo, 41** → chip **JNJ · $8k new money** (or reopen it from History). When it loads, click the **About JNJ** tab.
+
+**Say:**
+> "Mateo cares about ESG. We went beyond the starter data: from a public SEC filing, we know which US companies Vanguard's ESG fund actually holds. Johnson & Johnson is excluded, so SecondLook flags a conflict with his wish to avoid controversial companies. And it's honest: the filing doesn't say why it's excluded, and Canadian stocks aren't covered."
+
+## Scene 8: Trust and AWS (4:10–4:40)
+
+**Click:** the **Evidence & audit** tab.
+
+**Point at:** **Numbers verified**, **Bedrock Guardrail**, **AI agent calls**, **Audit record: Saved to S3**.
+
+**Say:**
+> "Every run is auditable. Every percentage and dollar figure the agents write is checked against the data, a Bedrock Guardrail screens the output for things like guaranteed returns, and the full trace of every agent is saved to Amazon S3. The app itself runs on AWS Lambda."
+
+(Optional, 5 seconds: click **Create your own investor** in the left menu to show the form: "Anyone can build their own investor and test ideas against it.")
+
+## Scene 9: Results and close (4:40–5:00)
+
+**Screen:** back to Robert's Tesla answer, or `docs/evaluation.md`.
+
+**Say:**
+> "We tested it on 36 live runs, including a prompt-injection attempt: every verdict matched what the profile implies, none was more lenient than the rules allow, and repeats were stable. SecondLook is an educational simulation, not financial advice. It's a second look before you act."
+
+---
+
+## If something goes wrong while recording
+
+| Problem | What to do |
+|---|---|
+| "The AWS credentials have expired" | Get new credentials from the workshop page and redeploy with `scripts/deploy_aws.py`, or record on a laptop running the app locally. |
+| An answer takes long | Cut the wait in editing, or reopen the pre-run analysis from **History**. |
+| The AI's wording differs from this script | Normal. The text varies a little between runs, but the verdicts and the numbers in the "Before → after" panel come from the rules and stay the same. |
