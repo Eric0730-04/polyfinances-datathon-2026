@@ -5,16 +5,46 @@ It only works until the event's AWS account closes (Sunday about 11:30), so reco
 
 ## Before you record (not filmed)
 
-1. **Wake the app up:** open the link once and wait about 10 s. The first load after a quiet period is slow; after that it's fast.
-2. **Pre-run the analyses.** Each analysis takes about 15 s. Do the runs below once *before* recording; the left menu's **History** then reopens them instantly. You can also cut the waiting time in editing.
-   - Robert → chip **TSLA · $60k from XBB**
-   - Mateo → chip **JNJ · $8k new money**
-   - Compare investors → **Put $2,000 of new money into Bitcoin.**
-3. **Screen set-up:**
-   - Chrome full screen, zoom 110% (Cmd +), other tabs closed, notifications off.
-   - Never show the terminal or anything with AWS keys.
-   - Record with **Cmd + Shift + 5** (macOS) or QuickTime.
-4. **Voice:** read the lines below or say them in your own words. Always say "simulation", never "recommendation".
+**Keep this PDF open in a second window or on your phone. The script is not inside the app.**
+
+### Step 1: Open and wake up the app
+Open the live link above and wait about 10 seconds. The first load after a quiet period is slow; after that it's fast.
+
+### Step 2: "Pre-click" the three analyses
+Each analysis takes about 15 seconds. Run them once now, so during the video they reopen instantly from **History**.
+
+**Pre-click A: Robert and Tesla**
+
+1. Left menu, under **INVESTORS**: click **Robert, 59**.
+2. Under the big question box: click the grey chip **TSLA · $60k from XBB**.
+3. Wait until the answer shows the red tag **Inconsistent with profile**.
+
+**Pre-click B: Mateo and J&J**
+
+1. Left menu: click **Mateo, 41**.
+2. Click the chip **JNJ · $8k new money**.
+3. Wait until the answer shows the orange tag **With conditions**.
+
+**Pre-click C: Compare**
+
+1. Left menu: click **Compare investors**.
+2. Click the chip **Put $2,000 of new money into Bitcoin.**
+3. Wait until all four columns (Robert, Amira, Mateo, Maya) show a result.
+
+**Check:** the left menu's **HISTORY** now lists *Robert · Everyone is talking about Tesla…* and *Mateo · Add $8,000…*. Clicking them reopens the answers instantly.
+
+**Do not refresh or close the tab after this.** A refresh empties History, and you would have to pre-click again.
+
+### Step 3: Set up the screen
+- Chrome full screen, zoom 110% (Cmd +), other tabs closed, notifications off.
+- Never show the terminal or anything with AWS keys.
+
+### Step 4: Record
+1. Press **Cmd + Shift + 5**, choose **Record Entire Screen** (or the Chrome window), then click **Record**.
+2. Follow the scenes below. When a scene says *click the chip…* for Robert's Tesla or Mateo's J&J, click its entry in **HISTORY** instead, so it opens instantly.
+3. Stop with the ⏹ button in the top menu bar. The video is saved to your Desktop.
+
+Say "simulation", never "recommendation".
 
 ---
 
