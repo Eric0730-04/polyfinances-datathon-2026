@@ -73,17 +73,6 @@ def index():
     return FileResponse(ROOT / "web" / "index.html")
 
 
-DEMO_SESSION = ("/?runs=ce9aa08b8142,2f706fcb4d29,67b59575e585"
-                "&cmp=55b609488b42,bbe2b93da551,9de587306932,d214a577d2d9")
-
-
-@app.get("/demo")
-def demo():
-    """Short link that restores the prepared demo session (saved runs, empty chats)."""
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(DEMO_SESSION, status_code=302)
-
-
 @app.get("/healthz")
 def healthz():
     return {"ok": True}

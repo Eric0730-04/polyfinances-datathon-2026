@@ -518,8 +518,7 @@ function renderChat(it) {
   const last = [...it.chat].reverse().find((m) => m.role === "ai" && m.suggested?.length);
   const sugg = it.chat.length ? (last?.suggested || []) : DEFAULT_QS;
   el.innerHTML = `<div class="chat-head">${AI_SVG.replace('stroke="#fff"', 'stroke="#2563eb"').replace('stroke="#fff"', 'stroke="#2563eb"')}<b>Ask a follow-up about this answer</b>
-      <span class="small muted">answers only from this analysis · numbers verified</span>
-      ${it.chat.length ? `<button class="link" data-cclear style="margin-left:12px">Clear chat</button>` : ""}</div>
+      <span class="small muted">answers only from this analysis · numbers verified</span></div>
     <div class="chat-msgs">${it.chat.map((m) => m.role === "user" ? `<div class="cm-user">${esc(m.text)}</div>` : m.pending
       ? `<div class="cm-ai"><span class="typing"><i></i><i></i><i></i></span></div>`
       : m.error ? `<div class="cm-ai err-inline"><b>${esc(m.error.title)}</b> ${esc(m.error.action || "")}</div>`
@@ -530,7 +529,6 @@ function renderChat(it) {
     ${sugg.length ? `<div class="pills">${sugg.map((q) => `<button class="pill" data-q="${esc(q)}">${esc(q)}</button>`).join("")}</div>` : ""}
     <div class="followup-input"><input data-cin placeholder="e.g. What if I only put in half?"><button class="btn" data-csend>Ask</button></div>`;
   const send = (q) => { q = q.trim(); if (q) askChat(it, q); };
-  $("[data-cclear]", el)?.addEventListener("click", () => { it.chat = []; renderChat(it); });
   $("[data-csend]", el).addEventListener("click", () => send($("[data-cin]", el).value));
   $("[data-cin]", el).addEventListener("keydown", (e) => { if (e.key === "Enter") send(e.target.value); });
   $$("[data-q]", el).forEach((b) => b.addEventListener("click", () => send(b.dataset.q)));
