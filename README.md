@@ -9,12 +9,21 @@ SecondLook takes an investor's own idea, for example *"everyone is talking about
 
 **Live demo:** https://isybdeoz22wyqq4tccdermfuvq0zwugt.lambda-url.us-east-1.on.aws (public, HTTPS, hosted on AWS Lambda; the first load after a quiet period takes ~10 s)
 
+## Demo video
+
+**[Download the full narrated demo — 4 min 52 sec (MP4)](https://github.com/Eric0730-04/polyfinances-datathon-2026/releases/download/demo-video/secondlook-demo.mp4)** · [Video guide & timestamps](docs/demo_video.md) · [Original recording](https://github.com/Eric0730-04/polyfinances-datathon-2026/releases/tag/demo-video)
+
+[![SecondLook demo preview: investment consistency checks, follow-up questions, and investor comparison](docs/media/secondlook-preview.gif)](https://github.com/Eric0730-04/polyfinances-datathon-2026/releases/download/demo-video/secondlook-demo.mp4)
+
+*Short silent excerpts from the actual demo. Click the preview to download the complete video with audio; if your browser downloads the MP4, open it locally to watch.*
+
 | Deliverable | Where |
 |---|---|
 | Prototype | `server.py` (FastAPI) + `web/` (UI) + `src/` (agents, toolbox, rules) |
 | Technical documentation | [`docs/technical_documentation.md`](docs/technical_documentation.md) · [PDF](docs/technical_documentation.pdf) |
 | Evaluation results | [`docs/evaluation.md`](docs/evaluation.md) |
 | One-pager | [`docs/one_pager.md`](docs/one_pager.md) · [PDF](docs/one_pager.pdf) |
+| Demo video | [Full narrated walkthrough (MP4)](https://github.com/Eric0730-04/polyfinances-datathon-2026/releases/download/demo-video/secondlook-demo.mp4) · [Guide](docs/demo_video.md) |
 | Video script | [`docs/video_script.md`](docs/video_script.md) |
 | **Team hand-off (start here)** | [`docs/HANDOFF.md`](docs/HANDOFF.md) |
 
